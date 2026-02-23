@@ -1,0 +1,20 @@
+1) kolejny obraz png. "obraz10_okienko gry z lowieniem ryb".
+Tutaj jak widac gra w lowienie ryb juz wystartowal co widac po tym ze na srodku ekranu pojawilo nam sie malutkie okienko w obrazie o nazwie "obraz11_okienko gry z lowieniem ryb umiejscowienie" wskazalem Ci strzalka i czerowno ramka gdzie dokladnie ono sie znajduej zebys wiedzial to co wazne to ze normalnie w samej grze nie ma tych strzalek ani czerwonego podswietlenia
+
+2) kolejny obraz "obraz12_wyciete okienko z gra w lowienie ryb" przedstawia same okienko z gra z lowienie ryb ktore wyciaglem z gry w kolejnych krokach opisze Ci poszczegolne jego elementy oraz na czym polega sama gra. Okienko w tym obrazie przedstawai jego 'czysty obraz' bez moich podpowiedzi co jest czym wlasnie tak przedstawia sie w grze ta minigra w lowienie ryb
+
+3) w prawym gornym okienku minigry lowienie ryb znmajduje sie ilosc naszych pomyslnych klikniec. W pliku o nazwie "obraz13_wyciete okienko z gra w lowienie ryb - sukces klik" zaznaczylem Ci gdzie sie to znajduje jesli odniesiemy sukces 3 razy wygrywamy gre
+
+4) w pliku "obraz14_wyciete okienko z gra w lowienie ryb - timer" widzisz gdzie znajduje sie licznik czasu w okreslonym czasie musimy spelnic warunkuw wygrania gry inaczej przegrywamy
+
+5) w pliku "obraz15_wyciete okienko z gra w lowienie ryb - timer koniec czasu" widzisz jak wyglada timer gdy czas sie skonczy
+
+6) W pliku "obraz16_wyciete okienko z gra w lowienie ryb - rybka" widzisz mala rybke ktora czesto bedzie zmieniac pozycje to znaczy ze znajduje sie czesto w innym miejscu
+
+7) w pliku "obraz17_wyciete okienko z gra bialy krag rybka poza nim" mozesz zauwazyc bialy okrag ktory zawsze jest w grze gdy rybka jest poza nim okrag jest bialy
+
+8) w pliku "obraz18_wyciete okienko z gra czerowny krag rybka w srodku" widac czerowny okrag, ktory widnieja w takim kolorze tylko wtedy gdy rybka jest w srodku naszego okregu. Naszym zadaniem jest klinkiecie lewego przcyisku myszy 3 razy na rybke ale tylko wtedy gdy rybka jest w srodku okregu. Wtedy wygrywamy gre i musimy zaczac od poczatku czyli nacisnac klawisz przypisany do robaka a potem spacje zeby zarzucic wedke i zaczynamy od nowa
+
+
+
+

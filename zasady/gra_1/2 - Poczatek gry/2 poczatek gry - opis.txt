@@ -1,0 +1,5 @@
+1) Jesli upewnilismy sie ze wszystko jest gotowe czyli wiemy ze okienko z gra znajduje sie we wlasciwej pozycji, do paska przypisanych klawiszy mamy przypisanego rebaka najlepiej do ostatniego slotu a nasza postac jest wyposazona w wedke to musimy upewnic sie ze postac gracza znajduje sie blisko wody tutaj jedyny sposob w jaki bedziemy to weryfikowac to jednorazowe info dla gracza zeby upewnil sie ze jest blisko wody jedno takie info wystarczy.
+
+2) Kolejnym krokiem jest automatyczne nacisniecie klawisza przypisanego do robaka - w tym momencie wyczerpujemy jednego robaka i co kazdy jeden pelny obieg gry bedziemy musieli wybierac  automatycznie i klikac w ten klawisz
+
+3) Gdy juz wykonalismy poprzedni krok musimy zasymulowac nacisniecie spacji - to sprawi ze nasza postac zarzuci wedke a gra sie rozpocznie.

@@ -1,0 +1,26 @@
+1) Mamy pierwszy plik .png o nazwie "Obraz1_okienko z gra na tel calego erkanu"
+Przedstawia on obraz załadowanej gry.
+Jak widać otworzyla sie w lewym gornym rogu i domyslnie zawsze chcemy go tak otwierac wiec możliwe że przyda się nam rowniez w przyszlosci jakas forma sprawdzania tego czy nasze okienko z gra na pewno otworzylo sie w lewym gornym rogu.
+
+2) Drugi plik .png nosi nazwe "Obraz2_okienko z gra i ekwipunek".
+Przedstawia on obraz z zaladowanej gry z otwartym ekwipunkiem, jak widać czerwona strzalka wskazuje nam dokladna polozenia naszego ekwipunku a czerwona ramka okresla gdzies on jest.
+Przy czym warte uwagi jest to ze strzalke i obramowania dorobilem ja na potrzeby tej instrukcji w normalnym okienku z gra nie ma tego wiec warto zebys zapamietal gdzie szukac ekwipunku
+
+3) Kolejny plik .png nazywa sie "Obraz3_okienko z gra i pasek przypisania klawiszy"
+Przedstawia on obraz z zaladowanej gry z otwartym ekwipunkiem, jak widac na dole znajduje sie pasek aktualnie przypisany skrotow klawiszowych odpowiadaja one aktualnie przypisanym umiejetnoscia i przedmiotom postaci.
+Przy czym warte uwagi jest to ze strzalke i obramowania dorobilem je na potrzeby tej instrukcji w normalnym okienku z gra nie ma tego wiec warto zebys zapamietal gdzie szukac ekwipunku
+
+4) Kolejny plik .png "Obraz4_pasek przypisania klawiszy" pokazuje nam juz sam pasek przypisania klawiszy. Wstawilem to wyciete z gry tak zebys mogl go przeanalizowac, ma on miejsca 'przedzialy' w ktorych gracz moze umiejscowic odpowiednie przedmioty ktore go interesuja, nas interestuje robak przypisany do odpowiedniego miejsca.
+
+5) Kolejny plik .png "robak" pokazuje jak wyglada robak. Musi on byc przypisany od oppowiedniego slotu gdyz potem bedziemy go uzywac za kazdym powtorzeniem gry.
+
+6) w kolejnym pliku .png "Obraz6_pasek przypisania klawiszy i miejsce robaka"
+Przedstawilem jak pozycjonuje sie nasz robak i w ktorym jest slocie, w tym przypadku jest to ostatni dostepny slot na pasku przypisania klawiszy, tutaj bedziemy musieli zawsze upewniac sie ze znajduje sie on we wlasciwym miejscu
+
+7) w kolejnym pliku "Obraz7_szczegoly robaka klawisz przypisania" znajduje sie szczegoly ktore specjalnie podswietlilem czerowna ramka. Jest tam informacja o tym jaki klawisz zostal przypisany do uzycia naszego robaka
+
+8) w kolejnym pliku "Obraz8_szczegoly robaka ilosc robakow" znajduje sie szczegoly ktore specjalnie podswietlilem czerowna ramka. Jest tam informacja o tym ile robakow nam zostalo. jesli ilsoc bedzie = 0 kontynuacja gry bedzie niemozliwa wiec w przyszlosc bedziemy musieli zadbac o jakies odpowiednie alertowanie tego gdy zabraknie nam robakow ale to potem
+
+9) dodatkowo w pliku "Obraz9_okienko z gra i wedka w ekwipunku" jest zaznaczone przeze mnie w ktorym miejscu w ekwipunku postaci jest poakzane czy gracz ma wyekwipowana wedke, przed rozpoczeciem gry powinien zawsze ja miec
+
+
