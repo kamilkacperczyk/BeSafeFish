@@ -1,0 +1,21 @@
+1) Co budujemy?
+Aplikacja wspomagająca łowienie ryb w Metin2 — automatyzacja mini-gry. Docelowo z systemem dostępu dla użytkowników (ale to później). Na start - działający core.
+
+2) Web vs Desktop - moja analiza
+To kluczowa decyzja, bo wpływa na wszystko. Oto porównanie:
+A) Aplikacja desktopowa
+Zalety:
+- Bezpośredni dostęp do ekranu gracza (przechwytywanie obrazu, symulacja kliknięć)
+- Niższe opóźnienia — wszystko działa lokalnie
+- Łatwiejsze interakcje z grą (automatyzacja myszki/klawiatury)
+Wady:
+- Trudniejsza dystrybucja i aktualizacje
+- Trzeba budować na każdy OS osobno
+- Trudniejsze zarządzanie dostępem użytkowników
+B) Aplikacja webowa
+Zalety:
+- Łatwa dystrybucja — link i działa
+- Łatwe zarządzanie użytkownikami (login, odbieranie dostępu)
+- Aktualizacje natychmiast dla wszystkich
+Wady:
+- Nie ma bezpośredniego dostępu do ekranu/gry użytkownika — potrzebuje i tak komponentu lokalnego (agent/client)
