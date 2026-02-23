@@ -1,23 +1,69 @@
-1) Co budujemy?
-Aplikacja wspomagająca łowienie ryb w Metin2 — automatyzacja mini-gry. Docelowo z systemem dostępu dla użytkowników (ale to później). Na start - działający core.
+# Kosa — Opis projektu
 
-2) Web vs Desktop - moja analiza
-To kluczowa decyzja, bo wpływa na wszystko.
+## 1) Co budujemy?
 
-A) Aplikacja desktopowa
+Aplikacja wspomagająca łowienie ryb w Metin2 — automatyzacja mini-gry.
+Aplikacja ma sama reagować na ekran i klikać za gracza (odczyt ekranu + symulacja inputów).
+Docelowo z systemem dostępu dla użytkowników (ale to później). Na start — działający core.
+
+## 2) Analiza: Web vs Desktop
+
+To kluczowa decyzja, bo wpływa na całą architekturę.
+
+### A) Aplikacja desktopowa
+
 Zalety:
 - Bezpośredni dostęp do ekranu gracza (przechwytywanie obrazu, symulacja kliknięć)
 - Niższe opóźnienia — wszystko działa lokalnie
 - Łatwiejsze interakcje z grą (automatyzacja myszki/klawiatury)
+
 Wady:
 - Trudniejsza dystrybucja i aktualizacje
 - Trzeba budować na każdy OS osobno
 - Trudniejsze zarządzanie dostępem użytkowników
 
-B) Aplikacja webowa
+### B) Aplikacja webowa
+
 Zalety:
 - Łatwa dystrybucja — link i działa
 - Łatwe zarządzanie użytkownikami (login, odbieranie dostępu)
 - Aktualizacje natychmiast dla wszystkich
+
 Wady:
 - Nie ma bezpośredniego dostępu do ekranu/gry użytkownika — potrzebuje i tak komponentu lokalnego (agent/client)
+- Przeglądarka blokuje dostęp do ekranu i symulację kliknięć (bezpieczeństwo)
+
+## 3) Decyzja: Aplikacja desktopowa (Python)
+
+Wybraliśmy **aplikację desktopową** z następujących powodów:
+- Automatyzacja wymaga bezpośredniego dostępu do ekranu i symulacji kliknięć — **przeglądarka tego nie pozwala**, więc komponent desktopowy jest konieczny niezależnie od podejścia
+- Na start nie potrzebujemy systemu użytkowników ani web panelu — skupiamy się na działającym core
+- Prostsze do zbudowania jako pierwsza wersja — mniej ruchomych części
+
+### Dlaczego Python?
+- Szybki development — mniej kodu, szybciej do działającego prototypu
+- Świetne biblioteki: pyautogui (kliknięcia), Pillow/mss (screenshoty), OpenCV (rozpoznawanie obrazu)
+- Duża społeczność — łatwo znaleźć rozwiązania problemów
+- Łatwo później opakować w .exe przez PyInstaller
+
+## 4) Plan na przyszłość
+
+Gdy core aplikacji desktopowej będzie działać poprawnie, rozbudujemy ją o:
+- **Web panel** — autoryzacja użytkowników, logowanie, zarządzanie dostępem
+- **System tokenów/licencji** — możliwość przyznawania i odbierania dostępu
+- Użytkownik pobiera klienta desktopowego, loguje się tokenem, serwer autoryzuje dostęp
+
+To podejście hybrydowe (desktopowy agent + web panel) pozwoli łatwo kontrolować kto ma dostęp do aplikacji.
+
+## 5) Środowisko pracy
+
+- **IDE**: VS Code (uniwersalny — obsługuje Python + przyszły web panel)
+- **AI asystent**: Claude Opus 4.6 via OpenCode (planowanie, generowanie kodu, rozwiązywanie problemów)
+- **Repozytorium**: GitHub (prywatne) — github.com/kamilkacperczyk-on/Kosa
+
+## 6) Dokumentacja mini-gry
+
+Folder `zasady/` zawiera materiały opisujące mini-grę łowienia ryb:
+- Screenshoty z gry
+- Opisy mechaniki (co się dzieje na ekranie, co trzeba klikać, kiedy)
+- Te materiały służą jako baza do projektowania logiki automatyzacji
