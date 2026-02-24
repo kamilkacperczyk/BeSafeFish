@@ -1,0 +1,9 @@
+TEST 8a - Tracking bez klikania (2026-02-24 20:54:11)
+============================================================
+
+Klatki: 500, Czas: 18.4s, FPS: 27.2
+
+Fazy: RED=203, WHITE=162, NONE=135
+Detekcja w RED: 126/203 (62.1%)
+Detekcja w WHITE: 13/162 (8.0%)
+Detekcja TOTAL: 139/500 (27.8%)

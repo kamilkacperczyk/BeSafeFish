@@ -1,0 +1,29 @@
+TEST 5 - Detekcja kolorow (2026-02-24 20:50:26)
+============================================================
+
+Lacznie: 20
+Aktywna minigra: 19
+Czerwony: 7, Bialy: 12, None: 1
+
+ Nr  Color   Active  WhitePx  BrightPx
+----------------------------------------
+  1   none    False        0       148
+  2  white     True      871      2378
+  3  white     True      871      2326
+  4    red     True      192      1305
+  5    red     True      192      1265
+  6  white     True      871      2211
+  7  white     True      871      2176
+  8  white     True      871      2136
+  9    red     True      192      1115
+ 10  white     True      871      2061
+ 11  white     True      871      2026
+ 12    red     True      192      1002
+ 13  white     True      871      1951
+ 14  white     True      871      1912
+ 15    red     True      192       885
+ 16  white     True      877      1867
+ 17  white     True      871      1796
+ 18    red     True      192       775
+ 19    red     True      192       570
+ 20  white     True      871      1556

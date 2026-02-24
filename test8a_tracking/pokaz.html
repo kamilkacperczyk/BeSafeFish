@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>TEST 8a - Tracking rybki BEZ klikania</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-family: 'Consolas', 'Courier New', monospace;
+  padding: 20px;
+}
+h1 {
+  text-align: center;
+  color: #00ff88;
+  font-size: 1.6em;
+  margin-bottom: 8px;
+  text-shadow: 0 0 10px rgba(0,255,136,0.3);
+}
+.subtitle {
+  text-align: center;
+  color: #888;
+  font-size: 0.85em;
+  margin-bottom: 20px;
+}
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #16213e;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+.stat-box {
+  text-align: center;
+  padding: 10px 20px;
+  border-radius: 6px;
+  min-width: 180px;
+}
+.stat-box.red { border: 2px solid #ff4444; }
+.stat-box.white { border: 2px solid #ffffff; }
+.stat-box.total { border: 2px solid #00ff88; }
+.stat-box .label { font-size: 0.8em; color: #aaa; margin-bottom: 4px; }
+.stat-box .value { font-size: 1.4em; font-weight: bold; }
+.stat-box.red .value { color: #ff4444; }
+.stat-box.white .value { color: #ffffff; }
+.stat-box.total .value { color: #00ff88; }
+.stat-box .detail { font-size: 0.75em; color: #777; margin-top: 2px; }
+
+.filters {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.filter-btn {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.95em;
+  padding: 8px 22px;
+  border: 2px solid #555;
+  background: #16213e;
+  color: #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-btn:hover { border-color: #00ff88; color: #fff; }
+.filter-btn.active {
+  background: #00ff88;
+  color: #1a1a2e;
+  border-color: #00ff88;
+  font-weight: bold;
+}
+.filter-btn.active-red { background: #ff4444; border-color: #ff4444; color: #fff; }
+.filter-btn.active-white { background: #888; border-color: #fff; color: #fff; }
+.filter-btn.active-none { background: #555; border-color: #777; color: #fff; }
+
+.count-info {
+  text-align: center;
+  margin-bottom: 16px;
+  color: #888;
+  font-size: 0.85em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 1200px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 800px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .grid { grid-template-columns: 1fr; } }
+
+.frame-card {
+  background: #16213e;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #333;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.frame-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.frame-card.phase-red { border-color: #ff4444; }
+.frame-card.phase-white { border-color: #ffffff; }
+.frame-card.phase-none { border-color: #555; }
+
+.frame-card img {
+  width: 100%;
+  display: block;
+  cursor: pointer;
+}
+.frame-card .info {
+  padding: 6px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8em;
+}
+.frame-card .frame-num { color: #aaa; }
+.frame-card .phase-tag {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.85em;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+.phase-tag.red { background: #ff4444; color: #fff; }
+.phase-tag.white { background: #444; color: #fff; border: 1px solid #fff; }
+.phase-tag.none { background: #333; color: #888; }
+
+.hidden { display: none !important; }
+
+/* Lightbox */
+.lightbox {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+.lightbox.visible { display: flex; }
+.lightbox img {
+  max-width: 95vw;
+  max-height: 95vh;
+  border-radius: 4px;
+}
+</style>
+</head>
+<body>
+
+<h1>TEST 8a &mdash; Tracking rybki BEZ klikania</h1>
+<p class="subtitle">Zielony celownik na obrazkach = wykryta pozycja rybki</p>
+
+<div class="stats">
+  <div class="stat-box red">
+    <div class="label">RED detection</div>
+    <div class="value">62.1%</div>
+    <div class="detail">126 / 203 klatek</div>
+  </div>
+  <div class="stat-box white">
+    <div class="label">WHITE detection</div>
+    <div class="value">8.0%</div>
+    <div class="detail">13 / 162 klatek</div>
+  </div>
+  <div class="stat-box total">
+    <div class="label">TOTAL detection</div>
+    <div class="value">27.8%</div>
+    <div class="detail">139 / 500 klatek</div>
+  </div>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" onclick="filterFrames('all')">ALL (97)</button>
+  <button class="filter-btn" onclick="filterFrames('red')">RED only (32)</button>
+  <button class="filter-btn" onclick="filterFrames('white')">WHITE only (39)</button>
+  <button class="filter-btn" onclick="filterFrames('none')">NONE only (26)</button>
+</div>
+
+<div class="count-info" id="countInfo">Wyświetlane: 97 / 97 klatek</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightboxImg" src="" alt="powiększenie">
+</div>
+
+<script>
+const frames = [
+  "frame_0001_red.png","frame_0006_red.png","frame_0011_red.png","frame_0016_white.png",
+  "frame_0021_white.png","frame_0026_white.png","frame_0031_red.png","frame_0036_white.png",
+  "frame_0041_white.png","frame_0046_white.png","frame_0051_white.png","frame_0056_white.png",
+  "frame_0061_white.png","frame_0066_red.png","frame_0071_red.png","frame_0076_red.png",
+  "frame_0081_red.png","frame_0086_red.png","frame_0091_red.png","frame_0096_red.png",
+  "frame_0101_white.png","frame_0106_white.png","frame_0111_white.png","frame_0116_white.png",
+  "frame_0121_white.png","frame_0126_white.png","frame_0131_white.png","frame_0136_red.png",
+  "frame_0141_red.png","frame_0146_red.png","frame_0151_red.png","frame_0156_red.png",
+  "frame_0161_red.png","frame_0166_white.png","frame_0171_white.png","frame_0176_white.png",
+  "frame_0181_white.png","frame_0186_white.png","frame_0191_white.png","frame_0196_white.png",
+  "frame_0201_white.png","frame_0206_red.png","frame_0211_red.png","frame_0216_red.png",
+  "frame_0221_white.png","frame_0226_white.png","frame_0231_white.png","frame_0236_white.png",
+  "frame_0241_white.png","frame_0246_red.png","frame_0251_red.png","frame_0256_white.png",
+  "frame_0261_white.png","frame_0266_white.png","frame_0271_white.png","frame_0276_red.png",
+  "frame_0281_red.png","frame_0286_red.png","frame_0291_red.png","frame_0296_red.png",
+  "frame_0301_red.png","frame_0306_red.png","frame_0311_red.png","frame_0316_red.png",
+  "frame_0321_red.png","frame_0326_red.png","frame_0331_red.png","frame_0336_red.png",
+  "frame_0341_red.png","frame_0346_red.png","frame_0351_red.png","frame_0356_red.png",
+  "frame_0361_red.png","frame_0366_none.png","frame_0371_none.png","frame_0376_none.png",
+  "frame_0381_none.png","frame_0386_none.png","frame_0391_none.png","frame_0396_none.png",
+  "frame_0401_none.png","frame_0406_none.png","frame_0411_none.png","frame_0416_none.png",
+  "frame_0421_none.png","frame_0426_none.png","frame_0431_none.png","frame_0436_none.png",
+  "frame_0441_none.png","frame_0446_none.png","frame_0451_none.png","frame_0456_none.png",
+  "frame_0461_none.png","frame_0466_none.png","frame_0471_none.png","frame_0476_none.png",
+  "frame_0481_none.png","frame_0486_none.png","frame_0491_none.png","frame_0496_none.png"
+];
+
+function getPhase(filename) {
+  if (filename.includes('_red.')) return 'red';
+  if (filename.includes('_white.')) return 'white';
+  return 'none';
+}
+
+function getFrameNum(filename) {
+  const m = filename.match(/frame_(\d+)/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+const grid = document.getElementById('grid');
+
+frames.forEach(f => {
+  const phase = getPhase(f);
+  const num = getFrameNum(f);
+  const card = document.createElement('div');
+  card.className = 'frame-card phase-' + phase;
+  card.dataset.phase = phase;
+  card.innerHTML =
+    '<img src="frames/' + f + '" alt="' + f + '" loading="lazy" onclick="openLightbox(\'frames/' + f + '\')">' +
+    '<div class="info">' +
+      '<span class="frame-num">#' + String(num).padStart(4, '0') + '</span>' +
+      '<span class="phase-tag ' + phase + '">' + phase + '</span>' +
+    '</div>';
+  grid.appendChild(card);
+});
+
+const totalFrames = frames.length;
+const counts = { all: totalFrames, red: 0, white: 0, none: 0 };
+frames.forEach(f => { counts[getPhase(f)]++; });
+
+function filterFrames(filter) {
+  const cards = document.querySelectorAll('.frame-card');
+  let shown = 0;
+  cards.forEach(c => {
+    if (filter === 'all' || c.dataset.phase === filter) {
+      c.classList.remove('hidden');
+      shown++;
+    } else {
+      c.classList.add('hidden');
+    }
+  });
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.className = 'filter-btn';
+  });
+
+  const btns = document.querySelectorAll('.filter-btn');
+  const idx = { all: 0, red: 1, white: 2, none: 3 };
+  const activeClass = { all: 'active', red: 'active-red', white: 'active-white', none: 'active-none' };
+  btns[idx[filter]].classList.add(activeClass[filter]);
+
+  document.getElementById('countInfo').textContent =
+    'Wyświetlane: ' + shown + ' / ' + totalFrames + ' klatek';
+}
+
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('visible');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('visible');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeLightbox();
+});
+</script>
+</body>
+</html>

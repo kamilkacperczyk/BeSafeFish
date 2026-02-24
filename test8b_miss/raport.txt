@@ -1,0 +1,9 @@
+TEST 8b - Tracking z MISS (2026-02-24 21:14:57)
+============================================================
+
+Klatki: 500, Czas: 18.3s, FPS: 27.3
+
+Fazy: RED=126, WHITE=149, NONE=225
+Detekcja w RED: 71/126 (56.3%)
+Detekcja w WHITE: 43/149 (28.9%)
+Detekcja TOTAL: 114/500 (22.8%)

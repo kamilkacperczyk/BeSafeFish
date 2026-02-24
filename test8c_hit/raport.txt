@@ -1,0 +1,9 @@
+TEST 8c - Tracking z HIT (2026-02-24 21:26:23)
+============================================================
+
+Klatki: 500, Czas: 18.3s, FPS: 27.3
+
+Fazy: RED=119, WHITE=201, NONE=180
+Detekcja w RED: 65/119 (54.6%)
+Detekcja w WHITE: 61/201 (30.3%)
+Detekcja TOTAL: 126/500 (25.2%)
