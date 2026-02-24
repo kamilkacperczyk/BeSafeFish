@@ -38,6 +38,13 @@ from src.config import (
     TEXT_YELLOW_THRESHOLD,
     TEXT_BRIGHT_V_MIN,
     TEXT_BRIGHT_THRESHOLD,
+    TEXT_MISS_H_MIN,
+    TEXT_MISS_H_MAX,
+    TEXT_MISS_S_MAX,
+    TEXT_MISS_V_MIN,
+    TEXT_MISS_THRESHOLD,
+    TEXT_MISS_SAT_MAX,
+    TEXT_MISS_LOW_SAT_RATIO,
 )
 import math
 
@@ -98,8 +105,8 @@ class FishingDetector:
         Sprawdza czy w okregu widac napis HIT (zolty tekst).
 
         Napis HIT ma charakterystyczny zolty kolor (H=15-45, S>80, V>150).
-        Normalna klatka z rybka ma 0 takich pikseli.
-        Klatka z napisem HIT ma ~2% (256 px).
+        Detekcja MISS odbywa sie na poziomie konturow (_is_text_contour)
+        bo piksele lavender sa zbyt podobne do tla wody w pelnej klatce.
 
         Returns:
             True jesli wykryto napis tekstowy (HIT)
@@ -169,6 +176,22 @@ class FishingDetector:
         bright_ratio = num_bright / region_gray.size
         if bright_ratio > 0.15 and num_bright >= TEXT_BRIGHT_THRESHOLD:
             return True
+
+        # Kryterium 3: saturacja jasnych pikseli — tekst MISS vs rybka
+        # Tekst MISS: jasne piksele (V>=170) z niska saturacja (S < 120)
+        # Rybka: ciemna (malo jasnych px) lub woda z wysoka S
+        # Oparte na analizie 12 przykladow MISS (miss1-12.png)
+        if area >= 100:
+            region_bgr = frame_bgr[y1:y2, x1:x2]
+            if region_bgr.size > 0:
+                region_hsv = cv2.cvtColor(region_bgr, cv2.COLOR_BGR2HSV)
+                bright_v = region_hsv[:, :, 2] >= 170
+                n_bright = np.count_nonzero(bright_v)
+                if n_bright >= 25:
+                    bright_sat = region_hsv[bright_v, 1]
+                    low_sat = np.count_nonzero(bright_sat < TEXT_MISS_SAT_MAX)
+                    if low_sat / n_bright > TEXT_MISS_LOW_SAT_RATIO:
+                        return True
 
         return False
 

@@ -57,6 +57,10 @@ class KosaBot:
     # Bezpieczny promien — NIGDY nie klikamy dalej niz to od srodka okregu
     SAFE_RADIUS = CIRCLE_RADIUS - CIRCLE_SAFE_MARGIN  # 64 - 10 = 54 px
 
+    # Limit klkniec w to samo miejsce (ochrona przed klikaniem w napis MISS)
+    SAME_SPOT_RADIUS = 15      # piksele - jesli klik w tym promieniu = "to samo miejsce"
+    SAME_SPOT_MAX_CLICKS = 3   # max klikniec w to samo miejsce
+
     @staticmethod
     def _clamp_to_circle(x: int, y: int) -> tuple:
         """
@@ -134,6 +138,7 @@ class KosaBot:
         max_no_circle = 15
         was_active = False
         last_fish_pos = None
+        click_spots = []  # tracker klikniec w to samo miejsce [(x, y, count)]
 
         # Reset trackera rybki na poczatku rundy
         self.detector.reset_tracking()
@@ -159,15 +164,31 @@ class KosaBot:
 
                 if click_target is not None:
                     fx, fy = self._clamp_to_circle(click_target[0], click_target[1])
-                    self.input.click_at_fish_fast(fx, fy)
-                    click_count += 1
-                    if click_count % 5 == 1:  # loguj co 5 klikniec
-                        print(f"[BOT] Klik #{click_count} w ({fx},{fy})"
-                              f" {'[FRESH]' if fish_pos else '[LAST]'}")
+
+                    # Sprawdz limit klikniec w to samo miejsce
+                    spot_blocked = False
+                    for i, (sx, sy, cnt) in enumerate(click_spots):
+                        dist = math.sqrt((fx - sx)**2 + (fy - sy)**2)
+                        if dist <= self.SAME_SPOT_RADIUS:
+                            if cnt >= self.SAME_SPOT_MAX_CLICKS:
+                                spot_blocked = True
+                            else:
+                                click_spots[i] = (sx, sy, cnt + 1)
+                            break
+                    else:
+                        click_spots.append((fx, fy, 1))
+
+                    if not spot_blocked:
+                        self.input.click_at_fish_fast(fx, fy)
+                        click_count += 1
+                        if click_count % 5 == 1:  # loguj co 5 klikniec
+                            print(f"[BOT] Klik #{click_count} w ({fx},{fy})"
+                                  f" {'[FRESH]' if fish_pos else '[LAST]'}")
 
             elif color == "white":
                 no_circle_count = 0
                 was_active = True
+                click_spots = []  # reset spot trackera przy zmianie fazy na biala
 
             else:
                 no_circle_count += 1

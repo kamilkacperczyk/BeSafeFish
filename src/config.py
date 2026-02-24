@@ -77,6 +77,19 @@ TEXT_YELLOW_THRESHOLD = 50  # min pikseli zoltych w okregu = napis HIT
 TEXT_BRIGHT_V_MIN = 220     # prog jasnosci dla detekcji tekstu (konserwatywny)
 TEXT_BRIGHT_THRESHOLD = 50  # min jasnych pikseli w regionie bloba = tekst
 
+# Detekcja tekstu MISS (lavender/jasnofioletowy)
+# Analiza 12 przykladow MISS (miss1-12.png) pokazala:
+#   - Tekst MISS jest jasno-fioletowy: H=85-180, S=15-110, V=185+
+#   - Rybka jest oliwkowa/ciemna: H=20-60, S=150+, V=80-160
+#   - Kluczowy wyroznik: saturacja jasnych pikseli (tekst S<120, rybka S>150)
+TEXT_MISS_H_MIN = 85        # min H (niebieski-fioletowy zakres)
+TEXT_MISS_H_MAX = 180       # max H
+TEXT_MISS_S_MAX = 110       # max saturacja (tekst MISS jest wyblakly)
+TEXT_MISS_V_MIN = 185       # min jasnosc
+TEXT_MISS_THRESHOLD = 130   # min pikseli lavender w okregu = napis MISS (konserwatywny)
+TEXT_MISS_SAT_MAX = 120     # max saturacja jasnego px w konturze (tekst vs rybka)
+TEXT_MISS_LOW_SAT_RATIO = 0.30  # min proporcja jasnych px z niska saturacja
+
 # --- GAME LOGIC ---
 CLICKS_TO_WIN = 3          # ile trafien potrzeba zeby wygrac
 BURST_CLICKS = 3           # ile szybkich klikniec przy wejsciu rybki w czerwony
