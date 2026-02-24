@@ -31,6 +31,13 @@ from src.config import (
     CIRCLE_CENTER_Y,
     CIRCLE_RADIUS,
     CIRCLE_SAFE_MARGIN,
+    TEXT_YELLOW_H_MIN,
+    TEXT_YELLOW_H_MAX,
+    TEXT_YELLOW_S_MIN,
+    TEXT_YELLOW_V_MIN,
+    TEXT_YELLOW_THRESHOLD,
+    TEXT_BRIGHT_V_MIN,
+    TEXT_BRIGHT_THRESHOLD,
 )
 import math
 
@@ -53,12 +60,21 @@ class FishingDetector:
         self._bg_phase = None         # faza w ktorej budowalismy tlo
         self._frames_since_recompute = 0
 
+        # Ostatnia klatka BGR (potrzebna do analizy koloru konturow)
+        self._last_bgr = None
+
         # Fallback: frame differencing (pierwsze klatki)
         self._prev_gray = None
 
         # Historia pozycji rybki do predykcji
         self._fish_history = []  # lista (timestamp, x, y)
         self._max_history = 5    # ile ostatnich pozycji pamietac
+
+        # Filtr statycznej pozycji (MISS tekst stoi w miejscu, rybka sie rusza)
+        self._stale_pos = None       # (x, y) ostatnia pozycja
+        self._stale_count = 0        # ile klatek z ta sama pozycja
+        self.STALE_MAX_DIST = 3      # max odleglosc zeby uznac za "ta sama" pozycje
+        self.STALE_FRAMES_LIMIT = 3  # po tylu klatkach odrzuc jako tekst
 
     def _count_bright_white_pixels(self, fishing_frame: np.ndarray) -> int:
         """Liczy piksele prawie biale (niski S, wysoki V) - kontur bialego okregu."""
@@ -76,6 +92,85 @@ class FishingDetector:
         gray = cv2.cvtColor(fishing_frame, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
         return cv2.countNonZero(thresh)
+
+    def _has_text_overlay(self, frame_bgr: np.ndarray) -> bool:
+        """
+        Sprawdza czy w okregu widac napis HIT (zolty tekst).
+
+        Napis HIT ma charakterystyczny zolty kolor (H=15-45, S>80, V>150).
+        Normalna klatka z rybka ma 0 takich pikseli.
+        Klatka z napisem HIT ma ~2% (256 px).
+
+        Returns:
+            True jesli wykryto napis tekstowy (HIT)
+        """
+        hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
+
+        # Maska okregu
+        mask = np.zeros(hsv.shape[:2], dtype=np.uint8)
+        cv2.circle(mask, (CIRCLE_CENTER_X, CIRCLE_CENTER_Y), CIRCLE_RADIUS, 255, -1)
+
+        # Szukaj zoltych pikseli (napis HIT)
+        yellow_mask = cv2.inRange(
+            hsv,
+            np.array([TEXT_YELLOW_H_MIN, TEXT_YELLOW_S_MIN, TEXT_YELLOW_V_MIN]),
+            np.array([TEXT_YELLOW_H_MAX, 255, 255]),
+        )
+        yellow_in_circle = cv2.bitwise_and(yellow_mask, mask)
+        num_yellow = cv2.countNonZero(yellow_in_circle)
+
+        return num_yellow >= TEXT_YELLOW_THRESHOLD
+
+    def _is_text_contour(self, gray: np.ndarray, frame_bgr: np.ndarray,
+                         cx: int, cy: int, contour) -> bool:
+        """
+        Sprawdza czy wykryty kontur to napis (HIT/MISS) a nie rybka.
+
+        Kryteria (konserwatywne - wolimy przepuscic tekst niz odrzucic rybke):
+        1. Kontur musi byc dostatecznie duzy (area > 150) - male to szum
+        2. Jasne piksele stanowia > 15% regionu - tekst jest jasny
+        3. LUB aspect ratio > 2.5 z szerokosc > 30 - tekst jest szeroki
+
+        Args:
+            gray: klatka grayscale
+            frame_bgr: klatka BGR (do analizy koloru)
+            cx, cy: centroid konturu
+            contour: kontur OpenCV
+
+        Returns:
+            True jesli kontur wyglada jak tekst (odrzucic!)
+        """
+        area = cv2.contourArea(contour)
+
+        # Male kontury to prawdopodobnie szum, nie tekst
+        if area < 150:
+            return False
+
+        x, y, w, h = cv2.boundingRect(contour)
+
+        # Kryterium 1: aspect ratio - tekst jest szeroki i plaski
+        aspect = w / h if h > 0 else 0
+        if aspect > 3.0 and w > 40:
+            return True
+
+        # Region wokol bloba
+        pad = 3
+        y1 = max(0, y - pad)
+        y2 = min(gray.shape[0], y + h + pad)
+        x1 = max(0, x - pad)
+        x2 = min(gray.shape[1], x + w + pad)
+
+        region_gray = gray[y1:y2, x1:x2]
+        if region_gray.size == 0:
+            return False
+
+        # Kryterium 2: procent jasnych pikseli w regionie
+        num_bright = np.count_nonzero(region_gray > TEXT_BRIGHT_V_MIN)
+        bright_ratio = num_bright / region_gray.size
+        if bright_ratio > 0.15 and num_bright >= TEXT_BRIGHT_THRESHOLD:
+            return True
+
+        return False
 
     @staticmethod
     def _is_red_blob(hsv_frame: np.ndarray, cx: int, cy: int, radius: int = 4) -> bool:
@@ -152,20 +247,26 @@ class FishingDetector:
             binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
 
-        # Biggest blob = rybka
-        best_area = 0
-        best_cx, best_cy = 0, 0
+        # Biggest blob = rybka (z filtrem na napisy HIT/MISS)
+        candidates = []
         for c in contours:
             area = cv2.contourArea(c)
-            if area > best_area and area > self.FISH_MIN_AREA:
+            if area > self.FISH_MIN_AREA:
                 M = cv2.moments(c)
                 if M["m00"] > 0:
-                    best_area = area
-                    best_cx = int(M["m10"] / M["m00"])
-                    best_cy = int(M["m01"] / M["m00"])
+                    cx = int(M["m10"] / M["m00"])
+                    cy = int(M["m01"] / M["m00"])
+                    candidates.append((area, cx, cy, c))
 
-        if best_area > self.FISH_MIN_AREA:
-            return (best_cx, best_cy)
+        # Sortuj malejaco po area
+        candidates.sort(key=lambda c: c[0], reverse=True)
+
+        for area, cx, cy, contour in candidates:
+            # Filtr: sprawdz czy kontur to tekst HIT/MISS
+            if self._is_text_contour(gray, self._last_bgr, cx, cy, contour):
+                continue  # pomija napis, sprawdz nastepny kontur
+            return (cx, cy)
+
         return None
 
     def _find_fish_frame_diff(self, gray: np.ndarray, circle_color: str) -> tuple:
@@ -232,10 +333,24 @@ class FishingDetector:
             None jesli nie znaleziono rybki
         """
         gray = cv2.cvtColor(fishing_frame, cv2.COLOR_BGR2GRAY)
+        self._last_bgr = fishing_frame  # zachowaj do analizy koloru konturow
 
         # Faza "none" -> nie szukamy rybki, nie aktualizujemy modelu
         if circle_color == "none":
             self._prev_gray = gray.copy()
+            return None
+
+        # --- FILTR NAPISOW HIT/MISS ---
+        # Sprawdz czy w klatce jest napis HIT (zolty tekst)
+        # Jesli tak, nie szukaj rybki — to falszywka
+        if self._has_text_overlay(fishing_frame):
+            self._prev_gray = gray.copy()
+            # Dodaj klatke do bufora mimo wszystko
+            # (napis zniknie, a mediana go usredni)
+            self._frame_buffer.append(gray.copy())
+            self._frames_since_recompute += 1
+            if self._frames_since_recompute >= self.BG_RECOMPUTE_EVERY:
+                self._recompute_background()
             return None
 
         # Zmiana fazy (white -> red lub red -> white)?
@@ -247,6 +362,8 @@ class FishingDetector:
             self._frames_since_recompute = 0
             # Reset historii rybki — pozycje z innej fazy nie sa wiarygodne
             self._fish_history = []
+            self._stale_pos = None
+            self._stale_count = 0
 
         # Dodaj klatke do bufora
         self._frame_buffer.append(gray.copy())
@@ -274,6 +391,30 @@ class FishingDetector:
             if dx > self.FISH_MAX_JUMP or dy > self.FISH_MAX_JUMP:
                 fish_pos = None
 
+        # Filtr statycznej pozycji (tekst MISS/HIT stoi w miejscu, rybka sie rusza)
+        if fish_pos is not None:
+            if self._stale_pos is not None:
+                dist = math.sqrt(
+                    (fish_pos[0] - self._stale_pos[0]) ** 2
+                    + (fish_pos[1] - self._stale_pos[1]) ** 2
+                )
+                if dist <= self.STALE_MAX_DIST:
+                    self._stale_count += 1
+                else:
+                    self._stale_pos = fish_pos
+                    self._stale_count = 1
+            else:
+                self._stale_pos = fish_pos
+                self._stale_count = 1
+
+            if self._stale_count >= self.STALE_FRAMES_LIMIT:
+                # Pozycja nie zmienila sie przez N klatek → prawdopodobnie tekst
+                fish_pos = None
+        else:
+            # Brak detekcji — reset licznika statycznej pozycji
+            self._stale_pos = None
+            self._stale_count = 0
+
         # Zapisz do historii
         if fish_pos is not None:
             now = time.perf_counter()
@@ -292,6 +433,8 @@ class FishingDetector:
         self._bg_cache = None
         self._bg_phase = None
         self._frames_since_recompute = 0
+        self._stale_pos = None
+        self._stale_count = 0
 
     def predict_fish_position(self, ahead_ms: float = 50.0) -> tuple:
         """

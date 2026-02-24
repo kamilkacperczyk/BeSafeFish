@@ -62,6 +62,21 @@ CIRCLE_RADIUS = 64          # promien okregu w pikselach
 CIRCLE_SAFE_MARGIN = 10     # margines bezpieczenstwa (klikamy max do r-10)
 # Bezpieczny promien = 64 - 10 = 54 px od srodka
 
+# --- FILTR NAPISOW HIT/MISS ---
+# Napisy HIT/MISS pojawiajace sie po kliknieciu moga byc wykrywane jako rybka.
+# Filtr oparty na analizie pikseli: HIT jest zolty (H=15-45, S>80, V>150),
+# oba napisy maja jasne piksele (V>200) i wysoki gradient.
+# Progi ustalone na podstawie testow 8b/8c:
+#   HIT: 2.0% zoltych px, 1.6% jasnych, gradient 71.7
+#   OK:  0.0% zoltych px, 0.0% jasnych, gradient 53.3
+TEXT_YELLOW_H_MIN = 15      # min H dla zoltego tekstu HIT
+TEXT_YELLOW_H_MAX = 45      # max H dla zoltego tekstu HIT
+TEXT_YELLOW_S_MIN = 80      # min saturacja
+TEXT_YELLOW_V_MIN = 150     # min jasnosc
+TEXT_YELLOW_THRESHOLD = 50  # min pikseli zoltych w okregu = napis HIT
+TEXT_BRIGHT_V_MIN = 220     # prog jasnosci dla detekcji tekstu (konserwatywny)
+TEXT_BRIGHT_THRESHOLD = 50  # min jasnych pikseli w regionie bloba = tekst
+
 # --- GAME LOGIC ---
 CLICKS_TO_WIN = 3          # ile trafien potrzeba zeby wygrac
 BURST_CLICKS = 3           # ile szybkich klikniec przy wejsciu rybki w czerwony
