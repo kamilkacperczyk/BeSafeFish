@@ -53,8 +53,8 @@ PATTERNS=(
 
 FOUND=0
 
-# Pobierz liste staged plikow (tylko dodane/zmodyfikowane, bez binarnych)
-FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -v '\.png$\|\.jpg$\|\.gif$\|\.ico$\|\.woff$\|\.ttf$\|\.eot$')
+# Pobierz liste staged plikow (bez binarnych, bez samego hooka)
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -v '\.png$\|\.jpg$\|\.gif$\|\.ico$\|\.woff$\|\.ttf$\|\.eot$' | grep -v 'setup_hooks/pre-commit')
 
 if [ -z "$FILES" ]; then
     echo "${GREEN}[pre-commit] Brak plikow do sprawdzenia.${NC}"
