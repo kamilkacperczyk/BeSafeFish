@@ -259,6 +259,10 @@ class KosaBot:
         was_active = False
         last_fish_pos = None
         click_spots = []  # tracker klikniec w to samo miejsce [(x, y, count)]
+        round_start = time.time()
+        max_round_time = 60.0  # max 60s na runde — potem wymuszamy koniec
+        no_click_time = None   # czas kiedy ostatnio kliknelismy (lub None)
+        max_no_click = 15.0    # jesli 15s bez klikniecia w fazie aktywnej — runda sie skonczyla
 
         # Reset trackera rybki na poczatku rundy
         self.detector.reset_tracking()
@@ -267,6 +271,12 @@ class KosaBot:
         self.input.ensure_focus()
 
         while self.running:
+            # Timeout rundy
+            elapsed = time.time() - round_start
+            if elapsed > max_round_time:
+                print(f"[BOT] Timeout rundy ({max_round_time}s). Klikniec: {click_count}")
+                return True
+
             frame = self.capture.grab_fishing_box()
 
             # Unified detekcja: CNN lub klasyczna
@@ -302,6 +312,7 @@ class KosaBot:
                     if not spot_blocked:
                         self.input.click_at_fish_fast(fx, fy)
                         click_count += 1
+                        no_click_time = None  # reset — kliknelismy
                         conf_str = ""
                         if detection.get('state_conf'):
                             conf_str = f" conf={detection['state_conf']:.2f}"
@@ -321,6 +332,14 @@ class KosaBot:
                     print(f"[BOT] Okno minigry sie zamknelo. Klikniec: {click_count}")
                     return True
 
+            # Detekcja zawieszenia: minigra aktywna ale brak klikniec od dluzszego czasu
+            if was_active and click_count > 0:
+                if no_click_time is None:
+                    no_click_time = time.time()
+                elif time.time() - no_click_time > max_no_click:
+                    print(f"[BOT] Brak klikniec od {max_no_click}s — runda zakonczona. Klikniec: {click_count}")
+                    return True
+
             # Debug: podglad na zywo
             if self.debug:
                 debug_info = {
@@ -338,7 +357,7 @@ class KosaBot:
 
         return False
 
-    def _wait_for_minigame_close(self, timeout: float = 5.0):
+    def _wait_for_minigame_close(self, timeout: float = 2.0):
         """
         Czeka az okno minigry calkowicie zniknie.
         Upewnia sie ze nie zaczniemy nowej rundy za wczesnie.

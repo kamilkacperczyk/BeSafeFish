@@ -50,9 +50,9 @@ CAST_KEY = 'space'         # klawisz zarzucenia wedki
 # --- TIMING ---
 SCAN_INTERVAL = 0.03       # co ile sekund robic screenshot (30ms = ~33 FPS)
 POST_CLICK_DELAY = 0.05    # opoznienie po kliknieciu (minimalne - szybkie metody pomijaja to)
-CAST_DELAY = 2.0           # opoznienie po zarzuceniu wedki (czekamy az animacja sie skonczy)
-BAIT_DELAY = 2.0           # opoznienie po uzyciu robaka (animacja nabrania przynety)
-ROUND_PAUSE = 5.0          # pauza miedzy rundami (zeby gra zdazyla przetworzyc)
+CAST_DELAY = 1.5           # opoznienie po zarzuceniu wedki (czekamy az animacja sie skonczy)
+BAIT_DELAY = 1.0           # opoznienie po uzyciu robaka (animacja nabrania przynety)
+ROUND_PAUSE = 2.0          # pauza miedzy rundami (zeby gra zdazyla przetworzyc)
 
 # --- OKRAG W MINIGRZE ---
 # Okrag lowienia wzgledem okienka lowienia (FISHING_BOX)
