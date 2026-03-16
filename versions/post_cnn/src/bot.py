@@ -65,6 +65,13 @@ try:
 except ImportError:
     HAS_CNN = False
 
+# Probuj zaladowac detektor ksztaltu rybki
+try:
+    from cnn.fish_shape_detector import FishShapeDetector
+    HAS_SHAPE = True
+except ImportError:
+    HAS_SHAPE = False
+
 
 class KosaBot:
     """Glowny bot automatyzujacy lowienie ryb w Metin2."""
@@ -128,6 +135,15 @@ class KosaBot:
         else:
             print("[BOT] Tryb klasyczny (CNN wylaczony)")
 
+        # Detektor ksztaltu rybki (fallback gdy bg-sub nie znajdzie)
+        self.shape_detector = None
+        if HAS_SHAPE:
+            try:
+                self.shape_detector = FishShapeDetector()
+                print("      Shape → fallback detekcji rybki (tlo referencyjne)")
+            except Exception as e:
+                print(f"[BOT] Shape detector niedostepny ({e})")
+
     def _detect_frame(self, frame) -> dict:
         """
         Hybrid detekcja — CNN do rozpoznawania stanu, klasyczny detektor do szukania rybki.
@@ -160,10 +176,20 @@ class KosaBot:
             # Klasyczny detektor: znajdz rybke (background subtraction)
             # CNN podaje kolor, klasyczny wie gdzie rybka
             fish_pos = self.detector.find_fish_position(frame, circle_color=color)
+            fish_src = "BG-SUB"
+
+            # Fallback: shape detector (tlo referencyjne)
+            # Jesli bg-sub nie znalazl rybki, sprobuj detektorem ksztaltu
+            if fish_pos is None and self.shape_detector is not None:
+                shape_result = self.shape_detector.find_fish_simple(frame)
+                if shape_result is not None:
+                    fish_pos = shape_result
+                    fish_src = "SHAPE"
 
             return {
                 'color': color,
                 'fish_pos': fish_pos,
+                'fish_src': fish_src,
                 'state': result['state'],
                 'state_conf': result['state_conf'],
             }
@@ -171,9 +197,19 @@ class KosaBot:
             # Fallback: w pelni klasyczny detektor
             color = self.detector.detect_circle_color(frame)
             fish_pos = self.detector.find_fish_position(frame, circle_color=color)
+            fish_src = "BG-SUB"
+
+            # Shape fallback
+            if fish_pos is None and self.shape_detector is not None:
+                shape_result = self.shape_detector.find_fish_simple(frame)
+                if shape_result is not None:
+                    fish_pos = shape_result
+                    fish_src = "SHAPE"
+
             return {
                 'color': color,
                 'fish_pos': fish_pos,
+                'fish_src': fish_src,
                 'state': color.upper() if color != 'none' else 'INACTIVE',
                 'state_conf': 1.0,
             }
@@ -267,7 +303,7 @@ class KosaBot:
                         conf_str = ""
                         if detection.get('state_conf'):
                             conf_str = f" conf={detection['state_conf']:.2f}"
-                        src = "[BG-SUB]" if fish_pos else "[LAST]"
+                        src = f"[{detection.get('fish_src', 'BG-SUB')}]" if fish_pos else "[LAST]"
                         if click_count % 5 == 1:  # loguj co 5 klikniec
                             print(f"[BOT] Klik #{click_count} w ({fx},{fy})"
                                   f" {src}{conf_str}")
@@ -288,7 +324,9 @@ class KosaBot:
                 debug_info = {
                     'state': detection.get('state', ''),
                     'conf': detection.get('state_conf', 0),
-                    'method': 'CNN+BgSub' if self.cnn else 'Classic',
+                    'method': 'CNN+BgSub+Shape' if (self.cnn and self.shape_detector)
+                              else ('CNN+BgSub' if self.cnn else 'Classic'),
+                    'fish_src': detection.get('fish_src', ''),
                 }
                 if not self._show_debug(frame, color, click_count, last_fish_pos,
                                         extra=debug_info):
@@ -360,9 +398,13 @@ class KosaBot:
             method = extra.get('method', '')
             state = extra.get('state', '')
             conf = extra.get('conf', 0)
-            cv2.putText(display, f"[{method}] {state} ({conf:.0%})",
+            fish_src = extra.get('fish_src', '')
+            label = f"[{method}] {state} ({conf:.0%})"
+            if fish_src:
+                label += f" fish:{fish_src}"
+            cv2.putText(display, label,
                         (10, display.shape[0] - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 200, 0), 1)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.35, (200, 200, 0), 1)
 
         cv2.imshow("Kosa Bot", display)
         if cv2.waitKey(1) & 0xFF == ord('q'):
