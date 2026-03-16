@@ -40,6 +40,12 @@ id_rsa*
 *.log
 *.tmp
 
+# === CNN TRENING (duze pliki, dane lokalne) ===
+versions/post_cnn/cnn/data/
+*.pth
+*.csv
+!versions/post_cnn/cnn/models/*.onnx
+
 # === SYSTEM ===
 Thumbs.db
 Desktop.ini

@@ -79,7 +79,7 @@ class MultiTaskLoss(nn.Module):
         }
 
 
-def train_one_epoch(model, loader, criterion, optimizer, device):
+def train_one_epoch(model, loader, criterion, optimizer, device, scheduler=None):
     """Trenuje model przez jedną epoke."""
     model.train()
     total_loss = 0.0
@@ -103,6 +103,10 @@ def train_one_epoch(model, loader, criterion, optimizer, device):
         # Gradient clipping — zapobiega eksplozji gradientow z malym datasetem
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
         optimizer.step()
+
+        # OneCycleLR wymaga step() po kazdym batchu
+        if scheduler is not None:
+            scheduler.step()
 
         total_loss += loss_dict['total'] * images.size(0)
         total_cls_loss += loss_dict['cls'] * images.size(0)
@@ -261,12 +265,10 @@ def train(
     for epoch in range(1, epochs + 1):
         t0 = time.time()
 
-        # Train
-        train_metrics = train_one_epoch(model, train_loader, criterion, optimizer, device)
-
-        # Step scheduler
-        # OneCycleLR steps per batch, ale my wywolujemy per epoch
-        # Wiec uzywamy StepLR-like approach
+        # Train (scheduler step per batch wewnatrz)
+        train_metrics = train_one_epoch(
+            model, train_loader, criterion, optimizer, device, scheduler
+        )
         current_lr = optimizer.param_groups[0]['lr']
 
         # Validate
@@ -345,16 +347,27 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Trening FishNet CNN")
-    parser.add_argument("--frames", default="cnn/data/raw", help="Folder z klatkami PNG")
+    parser.add_argument("--frames", default="cnn/data/frames", help="Folder z klatkami PNG")
     parser.add_argument("--labels", default="cnn/data/labels.jsonl", help="Plik JSONL z etykietami")
     parser.add_argument("--output", default="cnn/models", help="Folder na modele")
     parser.add_argument("--epochs", type=int, default=80)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--patience", type=int, default=15)
+    parser.add_argument("--prepare", action="store_true", help="Zbierz dane przed treningiem")
+    parser.add_argument("--export", action="store_true", help="Eksportuj do ONNX po treningu")
     args = parser.parse_args()
 
-    train(
+    if args.prepare:
+        from cnn.prepare_data import prepare_data
+        labels_file, frames_dir, count = prepare_data()
+        if count < 10:
+            print("[ABORT] Za malo danych do treningu!")
+            sys.exit(1)
+        args.labels = labels_file
+        args.frames = frames_dir
+
+    best_model = train(
         frames_dir=args.frames,
         labels_file=args.labels,
         output_dir=args.output,
@@ -363,3 +376,7 @@ if __name__ == "__main__":
         lr=args.lr,
         patience=args.patience,
     )
+
+    if args.export and best_model:
+        from cnn.export_onnx import export_to_onnx
+        export_to_onnx(checkpoint_path=best_model)

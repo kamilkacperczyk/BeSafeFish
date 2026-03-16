@@ -54,7 +54,7 @@ def export_to_onnx(
         output_path,
         input_names=["frame"],
         output_names=["state_logits", "position_raw"],
-        opset_version=17,
+        opset_version=18,
         dynamic_axes={
             "frame": {0: "batch"},
             "state_logits": {0: "batch"},
