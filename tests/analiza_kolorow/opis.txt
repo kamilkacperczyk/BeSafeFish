@@ -1,0 +1,18 @@
+Analiza kolorow - Analiza HSV kolorow rybki
+
+Cel:
+Analiza kolorow HSV pikseli rybki vs tlo w zapisanych klatkach.
+Szuka optymalnego filtra HSV do bezposredniej detekcji rybki.
+
+Jak dziala:
+1. Wczytuje klatki z diagnostyka_live/
+2. Parsuje log i bada kolory HSV pikseli w miejscu rybki vs tlo
+3. Testuje rozne filtry HSV (oliwkowy, zielonkawy, szeroki itp.)
+4. Tworzy histogramy H/S/V
+
+Wymagania:
+- Wymaga istnienia folderu diagnostyka_live/ z klatkami i logiem
+- Test offline
+
+Wyjscie:
+- Tylko stdout (histogramy i statystyki)

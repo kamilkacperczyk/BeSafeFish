@@ -1,0 +1,20 @@
+Calibrate - Kalibracja fishing boxa
+
+Cel:
+Weryfikacja czy fishing box w konfiguracji pokrywa sie
+z okienkiem minigry w grze Eryndos.
+
+Jak dziala:
+1. Robi screenshot calego ekranu
+2. Rysuje zielona ramke na fishing boxie (z config)
+3. Wycina sam fishing box
+4. Zapisuje 3 obrazki do recznej weryfikacji
+
+Wymagania:
+- Gra uruchomiona z widocznym okienkiem lowienia
+- Wymaga Administratora
+
+Wyjscie:
+- screenshot_caly.png
+- screenshot_z_ramka.png
+- screenshot_fishbox.png

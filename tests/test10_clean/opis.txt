@@ -1,0 +1,24 @@
+Test 10 - Czyste klatki RAW + DEBUG (1 minuta)
+
+Cel:
+Przechwycanie czystych klatek (bez overlay) do recznego wycinania
+przykladow napisow MISS/HIT oraz klatek z debug overlay do porownania.
+
+Jak dziala:
+1. Bot lowi ryby przez 60 sekund
+2. Zapisuje DWIE wersje kazdej klatki:
+   - raw/ - czysta klatka bez zadnych nalozen
+   - debug/ - klatka z zielonym krazkiem i krzyzkiem na rybce
+3. Mechanizm blokowania wielokrotnych klikniec w to samo miejsce
+   (SAME_SPOT_MAX_CLICKS=3, promien 15px)
+4. Generuje viewer.html z porownaniem RAW vs DEBUG obok siebie
+
+Wymagania:
+- Gra uruchomiona
+- Wymaga Administratora (bot klika)
+
+Wyjscie:
+- log.csv - pelny log z kolumna spot_blocked
+- viewer.html - podglad RAW vs DEBUG
+- raw/ - czyste klatki PNG
+- debug/ - klatki z debug overlay

@@ -1,0 +1,19 @@
+Diagnostyka - Pasywna obserwacja bota (20 sekund)
+
+Cel:
+Diagnostyka dzialania detektora - bot obserwuje minigre
+bez klikania i loguje co widzi.
+
+Jak dziala:
+1. Robi 200 screenshotow co 100ms (20 sekund)
+2. Zapisuje kazda klatke z informacja o detekcji
+   (kolor okregu, pozycja rybki, overlay)
+3. Nie klika - tylko loguje
+
+Wymagania:
+- Gra uruchomiona z aktywna minigra lowienia
+- Nie wymaga Administratora
+
+Wyjscie:
+- Klatki PNG w folderze diagnostyka/
+- log.txt - pelny log detekcji

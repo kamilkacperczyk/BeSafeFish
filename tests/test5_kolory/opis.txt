@@ -1,0 +1,20 @@
+Test 5 - Detekcja kolorow okregu
+
+Cel:
+Weryfikacja poprawnosci detekcji koloru okregu (bialy/czerwony/brak)
+w minigrze lowienia ryb.
+
+Jak dziala:
+1. Robi 20 screenshotow okienka lowienia co 0.5 sekundy
+2. Dla kazdego screena analizuje kolor okregu (detect_circle_color)
+3. Sprawdza aktywnosc minigry (liczba jasnych pikseli)
+4. Zapisuje screenshoty z etykieta koloru + raport statystyczny
+
+Wymagania:
+- Gra musi byc uruchomiona z widocznym okienkiem lowienia
+- Nie wymaga uprawnien Administratora (bot nie klika)
+
+Wyjscie:
+- Screenshoty PNG: test5_XX_<kolor>.png
+- raport.txt - statystyki detekcji
+- pokaz.html - podglad wynikow

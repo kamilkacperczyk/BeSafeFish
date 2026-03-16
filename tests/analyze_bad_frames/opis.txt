@@ -1,0 +1,18 @@
+Analyze bad frames - Analiza klatek BAD vs OK
+
+Cel:
+Doglebna analiza pikseli na klatkach BAD (MISS/HIT) vs OK (rybka).
+Szuka cech odrozniajacych napisy od prawdziwej rybki.
+
+Jak dziala:
+1. Wczytuje konkretne klatki z testow 8a/8b/8c
+2. Porownuje cechy: jasnosc, gradient, krawedzie Canny
+3. Analizuje piksele zolte/biale/zielone/czerwone w okregu
+4. Generuje obraz porownawczy
+
+Wymagania:
+- Wymaga istnienia klatek w test8a/8b/8c/frames/
+- Test offline
+
+Wyjscie:
+- analiza_bad/comparison.png

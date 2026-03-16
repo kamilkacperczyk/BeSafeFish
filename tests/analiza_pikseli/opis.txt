@@ -1,0 +1,22 @@
+Analiza pikseli - Gleboka analiza pikseli i modelu tla
+
+Cel:
+Doglebna analiza pikseli rybki vs tlo, budowa modelu tla (mediana),
+heatmapa ruchu, detekcja krawedzi.
+
+Jak dziala:
+1. Wczytuje klatki z diagnostyka_live/
+2. Porownuje piksele w miejscu rybki vs tlo (lustrzana pozycja)
+3. Buduje model tla (mediana bialej/czerwonej fazy)
+4. Testuje odejmowanie tla i detekcje krawedzi Canny
+5. Tworzy heatmape ruchu
+
+Wymagania:
+- Wymaga istnienia folderu diagnostyka_live/ z klatkami i logiem
+- Test offline
+
+Wyjscie:
+- heatmap_motion.png
+- background_white.png, background_red.png
+- diff_from_bg_*.png, diff_from_redBG_*.png
+- edges_*.png

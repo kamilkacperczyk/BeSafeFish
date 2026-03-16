@@ -1,0 +1,18 @@
+Diagnostyka gra - Diagnostyka z aktywnym graniem
+
+Cel:
+Diagnostyka detektora podczas aktywnej gry - bot GRA w minigre
+(klika w rybke) i jednoczesnie zapisuje szczegolowe logi.
+
+Jak dziala:
+1. Bot aktywnie gra w minigre lowienia (klika na czerwonym okregu)
+2. Zapisuje kazda klatke + szczegolowe logi
+3. Pozwala zobaczyc co sie dzieje z detekcja gdy pojawiaja sie HIT/MISS
+
+Wymagania:
+- Gra uruchomiona
+- Wymaga Administratora (bot klika)
+
+Wyjscie:
+- Klatki PNG: frame_*.png
+- log.txt - szczegolowy log detekcji i akcji

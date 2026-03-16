@@ -1,0 +1,17 @@
+Analyze miss - Analiza klatek z napisem MISS
+
+Cel:
+Analiza klatek z napisem MISS - porownanie jasnosci, koloru (HSV/BGR),
+gradientu pomiedzy klatkami MISS, OK-bliskie i standardowe OK.
+
+Jak dziala:
+1. Wczytuje wybrane klatki z testow 8a/8b/8c
+2. Porownuje cechy obrazu: jasnosc, kolor HSV, gradient
+3. Szuka wzorca koloru tekstu MISS do budowy filtra
+
+Wymagania:
+- Wymaga istnienia klatek w test8a/8b/8c/frames/
+- Test offline
+
+Wyjscie:
+- Tylko stdout (statystyki porownawcze)

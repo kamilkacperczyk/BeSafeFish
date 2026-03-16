@@ -1,0 +1,20 @@
+Test filter - Walidacja filtrow HIT/MISS (offline)
+
+Cel:
+Sprawdzenie czy filtry _has_text_overlay() i _is_text_contour()
+poprawnie odrzucaja napisy HIT/MISS a przepuszczaja rybke.
+
+Jak dziala:
+1. Wczytuje zapisane klatki z testow 8a/8b/8c
+2. Uruchamia filtr na kazdej klatce
+3. Sprawdza czy filtr poprawnie klasyfikuje:
+   - Klatki z napisem MISS/HIT -> odrzucone (brak detekcji)
+   - Klatki z rybka -> przepuszczone (detekcja poprawna)
+4. Wypisuje wyniki na konsole
+
+Wymagania:
+- Nie wymaga gry (test offline na zapisanych klatkach)
+- Wymaga istnienia folderow test8a/8b/8c z klatkami
+
+Wyjscie:
+- Tylko stdout (brak plikow wyjsciowych)

@@ -32,10 +32,10 @@ id_rsa*
 *~
 
 # === PLIKI TYMCZASOWE Z DIAGNOSTYKI I TESTOW ===
-diagnostyka/
-diagnostyka_gra/
-diagnostyka_live/
-test_kolory/
+/diagnostyka/
+/diagnostyka_gra/
+/diagnostyka_live/
+/test_kolory/
 *.png
 *.log
 *.tmp

@@ -1,0 +1,22 @@
+Test 8a - Tracking rybki (background subtraction)
+
+Cel:
+Weryfikacja dokladnosci sledzenia rybki metoda background subtraction
+bez ingerencji bota (gracz lowi recznie).
+
+Jak dziala:
+1. Nagrywa 500 klatek z okienka lowienia
+2. Dla kazdej klatki wykrywa faze kola (red/white/none) i pozycje rybki
+3. Bot TYLKO obserwuje - nie klika (gracz lowi recznie)
+4. Generuje raport z procentem udanych detekcji w fazach RED i WHITE
+5. Co 5-ta klatka zapisywana jako PNG z debug overlay
+
+Wymagania:
+- Gra uruchomiona, gracz aktywnie lowi ryby
+- Nie wymaga Administratora
+
+Wyjscie:
+- log.csv - pelny log klatek
+- raport.txt - statystyki detekcji
+- weryfikacja.html - interaktywny podglad klatek
+- frames/ - screenshoty co 5-ta klatka

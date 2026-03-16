@@ -1,0 +1,23 @@
+Diagnostyka live - Podglad na zywo z oknem OpenCV
+
+Cel:
+Diagnostyka detektora z podgladem w oknie OpenCV w czasie
+rzeczywistym. Bot obserwuje i pokazuje overlay detekcji.
+
+Jak dziala:
+1. Nagrywa klatki z minigry lowienia
+2. Pokazuje overlay w oknie OpenCV:
+   - Zielony = aktualna detekcja rybki
+   - Zolty = ostatnia znana pozycja
+   - Niebieski = predykcja
+   - Czerwony krzyzyk = gdzie by kliknal bot
+3. Nie klika - tylko obserwuje i loguje
+4. Klawisz 'q' zamyka, 's' zapisuje recznie klatke
+
+Wymagania:
+- Gra uruchomiona
+- Nie wymaga Administratora
+
+Wyjscie:
+- Klatki PNG: frame_*.png
+- log.txt - log detekcji

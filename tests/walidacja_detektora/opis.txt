@@ -1,0 +1,18 @@
+Walidacja detektora - Porownanie detektorow (offline)
+
+Cel:
+Walidacja nowego detektora (background subtraction) na wczesniej
+zapisanych klatkach, porownanie ze starym (frame diff).
+
+Jak dziala:
+1. Wczytuje klatki z diagnostyka_live/
+2. Uruchamia nowy detektor (background subtraction) na kazdej klatce
+3. Porownuje z wynikami starego detektora (frame differencing)
+4. Oblicza procentowa poprawe detekcji w fazach RED/WHITE
+
+Wymagania:
+- Wymaga istnienia folderu diagnostyka_live/ z klatkami i logiem
+- Test offline
+
+Wyjscie:
+- Tylko stdout (statystyki porownawcze)

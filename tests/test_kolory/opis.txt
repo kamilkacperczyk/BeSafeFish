@@ -1,0 +1,17 @@
+Test kolory - Prosty test detekcji kolorow
+
+Cel:
+Prosta weryfikacja detekcji koloru okregu (bialy/czerwony/brak).
+Starsza, uproszczona wersja testu 5.
+
+Jak dziala:
+1. Robi 10 screenshotow co 2 sekundy
+2. Zapisuje z wynikiem detekcji koloru i liczba pikseli w nazwie pliku
+3. Nie generuje osobnego raportu
+
+Wymagania:
+- Gra uruchomiona z widocznym okienkiem lowienia
+- Nie wymaga Administratora
+
+Wyjscie:
+- Screenshoty PNG: XX_<LABEL>_w<N>_b<N>.png

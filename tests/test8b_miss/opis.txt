@@ -1,0 +1,21 @@
+Test 8b - Wplyw napisow MISS na tracking
+
+Cel:
+Zbadanie jak napisy MISS (po pudle) wplywaja na jakosc
+sledzenia rybki metoda background subtraction.
+
+Jak dziala:
+1. Nagrywa 500 klatek z minigry lowienia
+2. Gracz celowo klika w zle miejsca generujac napisy MISS
+3. Bot obserwuje i bada wplyw artefaktow MISS na tracking
+4. Generuje raport porownawczy detekcji rybki w fazach RED vs WHITE
+
+Wymagania:
+- Gra uruchomiona, gracz celowo pudluje
+- Nie wymaga Administratora
+
+Wyjscie:
+- log.csv - pelny log klatek
+- raport.txt - statystyki detekcji
+- weryfikacja.html - interaktywny podglad klatek
+- frames/ - screenshoty co 5-ta klatka

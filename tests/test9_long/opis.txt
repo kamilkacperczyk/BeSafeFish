@@ -1,0 +1,22 @@
+Test 9 - Pelny test bota (2 minuty)
+
+Cel:
+Pelny test automatycznego lowienia - bot sam lowi ryby przez 2 minuty
+z zapisywaniem klatek do recznej weryfikacji trafnosci.
+
+Jak dziala:
+1. Bot gra w minigre przez 120 sekund (automatycznie zaklada robaka, zarzuca wedke)
+2. W fazie czerwonej klika w wykryta rybke
+3. Co 5-ta klatka zapisywana z debug overlay (zielony krzyzyk na rybce)
+4. Generuje interaktywny viewer (weryfikacja.html) do oceny:
+   OK / ZLE / MISS txt / HIT txt / BRAK / POZA
+
+Wymagania:
+- Gra uruchomiona
+- Wymaga Administratora (bot klika)
+
+Wyjscie:
+- log.csv - pelny log z akcjami bota
+- raport.txt - podsumowanie statystyk
+- weryfikacja.html - interaktywny viewer do recznej oceny
+- frames/ - screenshoty co 5-ta klatka z debug overlay
