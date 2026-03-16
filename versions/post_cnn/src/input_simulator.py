@@ -9,6 +9,7 @@ Przed kazda akcja fokusujemy okno gry, zeby klawisze trafialy we wlasciwe miejsc
 """
 
 import time
+import ctypes
 import pydirectinput
 import pygetwindow as gw
 
@@ -40,15 +41,30 @@ def _find_game_window():
 def _focus_game_window():
     """
     Znajduje okno gry i ustawia na nie fokus.
-    Dzieki temu klawisze trafiaja do gry, a nie do terminala.
+    Uzywa Win32 API (SetForegroundWindow) — dziala nawet bez uprawnien admina
+    w wiekszosci przypadkow.
     """
     try:
         win = _find_game_window()
         if win:
+            hwnd = win._hWnd
             if win.isMinimized:
-                win.restore()
-            win.activate()
-            time.sleep(0.1)  # daj chwile na aktywacje
+                # SW_RESTORE = 9
+                ctypes.windll.user32.ShowWindow(hwnd, 9)
+                time.sleep(0.3)
+
+            # Trik: AllowSetForegroundWindow + SetForegroundWindow
+            # Zeby Windows pozwolil nam przelaczac — najpierw symulujemy klawisz Alt
+            ctypes.windll.user32.keybd_event(0x12, 0, 0, 0)  # Alt press
+            ctypes.windll.user32.keybd_event(0x12, 0, 2, 0)  # Alt release
+            time.sleep(0.05)
+
+            result = ctypes.windll.user32.SetForegroundWindow(hwnd)
+            if not result:
+                # Fallback: pygetwindow
+                win.activate()
+
+            time.sleep(0.15)
             return True
         else:
             print(f"[INPUT] UWAGA: Nie znaleziono okna '{GAME_WINDOW_TITLE}'!")

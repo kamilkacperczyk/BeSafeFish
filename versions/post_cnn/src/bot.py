@@ -42,10 +42,12 @@ def _check_admin():
         print()
         print("Rozwiazanie:")
         print("  1. Otworz PowerShell jako Administrator")
-        print("  2. cd do folderu projektu")
-        print("  3. .\\venv\\Scripts\\python.exe -m src.bot --debug")
+        print("  2. Wklej ponizsze komendy:")
         print()
-        print("  Lub uzyj: start_bot.bat")
+        print('     $env:PYTHONPATH="C:\\Users\\REDACTED-USER-PATH\\Desktop\\Repos\\Kosa\\versions\\post_cnn"')
+        print('     cd "C:\\Users\\REDACTED-USER-PATH\\Desktop\\Repos\\Kosa\\versions\\post_cnn"')
+        print('     & "..\\..\\.venv\\Scripts\\python.exe" -m src.bot --debug')
+        print()
         sys.exit(1)
 
 
@@ -426,6 +428,25 @@ class KosaBot:
         print("  KOSA BOT - Automatyczne lowienie ryb")
         print("=" * 50)
         print()
+
+        # --- Znajdz i sfokusuj okno gry ERYNDOS ---
+        from src.input_simulator import _find_game_window, _focus_game_window, GAME_WINDOW_TITLE
+        win = _find_game_window()
+        if win:
+            print(f"[BOT] Znaleziono okno gry: \"{win.title}\"")
+            print(f"[BOT] Rozmiar: {win.width}x{win.height}, pozycja: ({win.left},{win.top})")
+            if _focus_game_window():
+                print("[BOT] Okno gry przeniesione na pierwszy plan!")
+            else:
+                print("[BOT] Nie udalo sie aktywowac okna — przelacz recznie!")
+                time.sleep(3)
+        else:
+            print(f"[BOT] UWAGA: Nie znaleziono okna '{GAME_WINDOW_TITLE}'!")
+            print("[BOT] Sprawdz czy gra jest uruchomiona.")
+            print("[BOT] Przelacz sie recznie na okno gry w ciagu 5 sekund!")
+            time.sleep(5)
+
+        print()
         print("Zabezpieczenia:")
         print("  - Rusz mysz w LEWY GORNY ROG ekranu = natychmiastowe przerwanie")
         print("  - Ctrl+C w terminalu = przerwanie")
@@ -480,6 +501,7 @@ class KosaBot:
 
 
 # --- URUCHOMIENIE ---
+# Wymagany PowerShell jako Administrator!
 # python -m src.bot                  -> tryb normalny z CNN
 # python -m src.bot --debug          -> tryb z podgladem + CNN
 # python -m src.bot --debug --no-cnn -> tryb klasyczny (bez CNN)
