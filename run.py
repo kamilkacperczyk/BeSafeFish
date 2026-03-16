@@ -8,7 +8,8 @@ importy 'from src.X import Y' dzialaja poprawnie.
 Uzycie:
   python run.py                          # menu wyboru wersji
   python run.py --version pre_cnn        # bezposredni wybor
-  python run.py --version pre_cnn --debug  # z podgladem
+  python run.py --version post_cnn --debug  # CNN z podgladem
+  python run.py --version post_cnn --no-cnn # klasyczna detekcja (fallback)
 
 Tworzenie nowej wersji:
   1. Skopiuj istniejacy folder: versions/pre_cnn/ -> versions/nowa/
@@ -115,13 +116,22 @@ def main():
     sys.path.insert(0, version_path)
 
     debug_mode = "--debug" in sys.argv
+    no_cnn = "--no-cnn" in sys.argv
     mode_str = "DEBUG" if debug_mode else "NORMALNY"
-    print(f"[KOSA] Wersja: {selected} | Tryb: {mode_str}")
+    cnn_str = "KLASYCZNY (--no-cnn)" if no_cnn else "CNN"
+    print(f"[KOSA] Wersja: {selected} | Tryb: {mode_str} | Detekcja: {cnn_str}")
     print()
 
     # --- Import i uruchomienie bota ---
     from src.bot import KosaBot
-    bot = KosaBot(debug=debug_mode)
+
+    # Przekaz use_cnn jesli bot go obsluguje (post_cnn)
+    import inspect
+    bot_params = inspect.signature(KosaBot.__init__).parameters
+    kwargs = {"debug": debug_mode}
+    if "use_cnn" in bot_params:
+        kwargs["use_cnn"] = not no_cnn
+    bot = KosaBot(**kwargs)
     bot.run()
 
 

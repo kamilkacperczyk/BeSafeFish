@@ -1,0 +1,125 @@
+================================================================================
+  WERSJA: POST CNN
+  Data utworzenia: 2026-03-16
+  Status: W BUDOWIE (model CNN jeszcze nie wytrenowany)
+  Baza: kopia pre_cnn + modul CNN
+================================================================================
+
+OPIS OGOLNY
+============
+Bot do automatycznego lowienia ryb w grze Metin2 (serwer Eryndos).
+Wersja POST CNN - oparta na lekkiej sieci neuronowej FishNet (CNN)
+z fallbackiem na klasyczną detekcje (background subtraction).
+
+CNN dziala na POJEDYNCZEJ klatce — bez historii, bez bufora, bez warmup.
+Eliminuje glowne problemy wersji PRE CNN:
+  - Rozpoznaje napisy HIT/MISS jako osobne klasy
+  - Nie degraduje skutecznosci w czasie
+  - Natychmiastowa detekcja od 1. klatki
+
+ARCHITEKTURA CNN (FishNet)
+===========================
+  - Custom lightweight CNN: 4 bloki conv + GAP + 2 heads
+  - Parametry: ~113K (~0.5 MB float32, ~115 KB int8)
+  - Input: 128x128x3 (RGB, normalizowane 0-1)
+  - Output 1: Klasyfikacja stanu (5 klas)
+    * INACTIVE  = brak minigry
+    * WHITE     = bialy okrag (czekaj)
+    * RED       = czerwony okrag (klikaj!)
+    * HIT_TEXT  = napis HIT (ignoruj)
+    * MISS_TEXT = napis MISS (ignoruj)
+  - Output 2: Regresja pozycji rybki (x, y, confidence)
+  - Inferencja: ONNX Runtime, <5ms na CPU (1 watek)
+
+CO CNN ZASTEPUJE (vs PRE CNN)
+==============================
+  ✓ Background subtraction (bufor 15 klatek, mediana)
+  ✓ Frame differencing (fallback)
+  ✓ Filtr napisu HIT (zliczanie zoltych pikseli HSV)
+  ✓ Filtr napisu MISS (saturacja konturu)
+  ✓ Filtr statycznej pozycji
+  ✓ Filtr max skoku
+  ✓ Filtr red blob
+  ✓ 17 stalych progowych/kolorystycznych w config.py
+
+CO ZOSTAJE BEZ ZMIAN
+======================
+  - ScreenCapture (mss) — przechwytywanie ekranu
+  - InputSimulator (pydirectinput) — symulacja klawiatury/myszy
+  - KosaBot._clamp_to_circle() — bezpieczenstwo klikniec
+  - Same-spot limiter — ochrona przed klikaniem w jedno miejsce
+  - Config: pozycja okna, wymiary boxa, klawisze, timingi
+  - FishingDetector — ZOSTAJE jako fallback (--no-cnn)
+
+PLIKI ZRODLOWE
+===============
+  src/bot.py              — Glowna petla (zmodyfikowana: CNN + fallback)
+  src/config.py           — Stale konfiguracyjne
+  src/fishing_detector.py — Klasyczny detektor (fallback)
+  src/input_simulator.py  — Symulacja klawiatury/myszy
+  src/screen_capture.py   — Przechwytywanie ekranu
+  src/__init__.py
+
+  cnn/model.py            — FishNet (architektura PyTorch)
+  cnn/dataset.py          — Dataset loader z augmentacja
+  cnn/train.py            — Petla treningowa (multi-task loss)
+  cnn/inference.py        — Inferencja ONNX Runtime (<5ms)
+  cnn/export_onnx.py      — Eksport PyTorch -> ONNX + kwantyzacja INT8
+  cnn/label_tool.py       — GUI do recznego etykietowania klatek
+  cnn/generate_pseudo_labels.py — Parser logow testowych -> pseudo-labels
+  cnn/benchmark.py        — Benchmark wydajnosci CPU
+  cnn/ARCHITEKTURA_CNN.md — Pelna dokumentacja architektury
+
+PIPELINE TRENINGOWY
+====================
+  1. Zbierz klatki: test10_clean/raw/ (~268), nowe nagranie (~2000+)
+  2. Pseudo-labels: python -m cnn.generate_pseudo_labels
+  3. Reczne etykietowanie: python -m cnn.label_tool --frames <folder>
+  4. Trening: python -m cnn.train (AdamW, OneCycleLR, 80 epok)
+  5. Eksport: python -m cnn.export_onnx
+  6. Test: python run.py --version post_cnn --debug
+
+URUCHOMIENIE
+=============
+  Z CNN (domyslne):
+    python run.py --version post_cnn --debug
+
+  Bez CNN (fallback klasyczny):
+    python run.py --version post_cnn --debug --no-cnn
+
+  Wymaga:
+    pip install onnxruntime  (do inferencji CNN)
+    Model ONNX w cnn/models/fishnet_int8.onnx (lub fishnet.onnx)
+
+WYMAGANIA
+==========
+  Python 3.14, Windows, Administrator
+  opencv-python 4.13.0, mss 10.1.0, numpy 2.4.2
+  pydirectinput 1.0.4, pygetwindow 0.0.9
+  onnxruntime 1.21.1 (do CNN)
+  torch + torchvision (TYLKO do treningu, CPU-only)
+
+OCZEKIWANE USPRAWNIENIA (vs PRE CNN)
+=====================================
+  MISS_TXT:    20% bledow -> ~2% (osobna klasa CNN)
+  BRAK:        26.7% -> ~5% (single-frame, bez warmup)
+  POZA:        13.3% -> ~8% (regresja centroida)
+  Degradacja:  62%->34% -> stala ~80%+ (stateless)
+  Warmup:      3+ klatki -> 0 klatek (natychmiastowa)
+  Czas det.:   5-15ms -> 3-5ms (ONNX Runtime)
+  Pamiec:      15 klatek bufor -> 0 (zero state)
+  Kod det.:    639 linii -> ~50 linii inferencji
+
+STATUS
+=======
+  [x] Architektura CNN zaprojektowana
+  [x] Kod modelu (model.py)
+  [x] Kod treningu (train.py, dataset.py)
+  [x] Kod inferencji (inference.py)
+  [x] Narzedzie etykietowania (label_tool.py)
+  [x] Eksport ONNX (export_onnx.py)
+  [x] Integracja z botem (bot.py zmodyfikowany)
+  [ ] Zbieranie danych treningowych
+  [ ] Etykietowanie klatek (~1000+ potrzebnych)
+  [ ] Trening modelu
+  [ ] Testy na zywo

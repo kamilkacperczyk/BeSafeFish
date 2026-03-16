@@ -1,0 +1,16 @@
+opencv-python==4.13.0.92
+mss==10.1.0
+PyAutoGUI==0.9.54
+numpy==2.4.2
+pillow==12.1.1
+PyDirectInput==1.0.4
+PyGetWindow==0.0.9
+
+# === CNN (trening) ===
+# Potrzebne TYLKO do treningu modelu, nie do uruchomienia bota
+# torch --index-url https://download.pytorch.org/whl/cpu
+# torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# === CNN (inferencja) ===
+# Potrzebne do uruchomienia bota z CNN
+onnxruntime==1.21.1
