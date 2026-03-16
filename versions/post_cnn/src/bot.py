@@ -53,7 +53,7 @@ from src.screen_capture import ScreenCapture
 from src.fishing_detector import FishingDetector
 from src.input_simulator import InputSimulator
 from src.config import (
-    SCAN_INTERVAL, CLICKS_TO_WIN,
+    SCAN_INTERVAL, CLICKS_TO_WIN, ROUND_PAUSE,
     CIRCLE_CENTER_X, CIRCLE_CENTER_Y, CIRCLE_RADIUS, CIRCLE_SAFE_MARGIN,
 )
 import math
@@ -417,8 +417,10 @@ class KosaBot:
                 # 4. Czekaj az okno minigry sie zamknie + 3s przerwy
                 print("[BOT] Czekam az okno minigry calkowicie zniknie...")
                 self._wait_for_minigame_close()
-                print("[BOT] Pauza 3 sekundy przed nastepna runda...")
-                time.sleep(3.0)
+                # Reset detektora — nowa runda, nowy model tla
+                self.detector.reset_tracking()
+                print(f"[BOT] Pauza {ROUND_PAUSE}s przed nastepna runda...")
+                time.sleep(ROUND_PAUSE)
 
         except KeyboardInterrupt:
             print("\n[BOT] Przerwano przez Ctrl+C.")

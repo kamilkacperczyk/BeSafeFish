@@ -17,7 +17,7 @@ from src.config import (
     FISHING_BOX_X, FISHING_BOX_Y,
     FISHING_BOX_WIDTH, FISHING_BOX_HEIGHT,
     BAIT_KEY, CAST_KEY,
-    POST_CLICK_DELAY, CAST_DELAY, BAIT_DELAY,
+    POST_CLICK_DELAY, CAST_DELAY, BAIT_DELAY, ROUND_PAUSE,
 )
 
 # pydirectinput: minimalne opoznienie miedzy akcjami
@@ -158,13 +158,18 @@ class InputSimulator:
         """
         Pelna sekwencja startu rundy:
         1. Fokus na okno gry
-        2. Nacisnij F4 (uzyj robaka)
-        3. Nacisnij SPACJE (zarzuc wedke)
+        2. Nacisnij F4 (uzyj robaka) — czekaj na animacje
+        3. Nacisnij SPACJE (zarzuc wedke) — czekaj na animacje
         """
-        print("[INPUT] Uzywam robaka (F4)...")
-        self.use_bait()
-        print("[INPUT] Zarzucam wedke (SPACJA)...")
-        self.cast_rod()
+        _focus_game_window()
+        print(f"[INPUT] Uzywam robaka ({BAIT_KEY.upper()})...")
+        pydirectinput.press(BAIT_KEY)
+        print(f"[INPUT] Czekam {BAIT_DELAY}s na animacje robaka...")
+        time.sleep(BAIT_DELAY)
+        print(f"[INPUT] Zarzucam wedke ({CAST_KEY.upper()})...")
+        pydirectinput.press(CAST_KEY)
+        print(f"[INPUT] Czekam {CAST_DELAY}s na animacje wedki...")
+        time.sleep(CAST_DELAY)
         print("[INPUT] Wedka zarzucona, czekam na minigre...")
 
 
