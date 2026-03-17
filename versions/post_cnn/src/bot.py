@@ -30,7 +30,9 @@ Zabezpieczenia:
 import time
 import sys
 import ctypes
+import os
 import cv2
+import numpy as np
 
 
 def _check_admin():
@@ -73,6 +75,13 @@ try:
     HAS_SHAPE = True
 except ImportError:
     HAS_SHAPE = False
+
+# Probuj zaladowac ONNX Runtime (do Patch CNN weryfikacji rybki)
+try:
+    import onnxruntime as ort
+    HAS_ORT = True
+except ImportError:
+    HAS_ORT = False
 
 
 class KosaBot:
@@ -145,6 +154,89 @@ class KosaBot:
                 print("      Shape → fallback detekcji rybki (tlo referencyjne)")
             except Exception as e:
                 print(f"[BOT] Shape detector niedostepny ({e})")
+
+        # Patch CNN — weryfikacja kandydatow na rybke (32x32 patch → fish/not_fish)
+        self.patch_cnn = None
+        if HAS_ORT:
+            try:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                patch_model_path = os.path.join(base_dir, "cnn", "models", "fish_patch_cnn.onnx")
+                if os.path.exists(patch_model_path):
+                    opts = ort.SessionOptions()
+                    opts.intra_op_num_threads = 1
+                    opts.inter_op_num_threads = 1
+                    opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+                    self.patch_cnn = ort.InferenceSession(
+                        patch_model_path, opts,
+                        providers=['CPUExecutionProvider']
+                    )
+                    # Warmup
+                    dummy = np.random.randn(1, 3, 32, 32).astype(np.float32)
+                    self.patch_cnn.run(None, {'patch': dummy})
+                    print("      PatchCNN → weryfikacja kandydatow na rybke (ONNX)")
+                else:
+                    print(f"[BOT] PatchCNN model nie znaleziony: {patch_model_path}")
+            except Exception as e:
+                print(f"[BOT] PatchCNN niedostepny ({e})")
+
+    # --- Patch CNN: weryfikacja kandydatow na rybke ---
+    PATCH_SIZE = 32
+    PATCH_HALF = PATCH_SIZE // 2
+    PATCH_CNN_THRESHOLD = 0.5  # prob > 0.5 = fish
+
+    def _verify_fish_patch(self, frame, cx: int, cy: int) -> tuple:
+        """
+        Weryfikuje kandydata na rybke za pomoca Patch CNN.
+
+        Wycina 32x32 patch wokol (cx, cy), przepuszcza przez ONNX model,
+        zwraca (is_fish, probability).
+
+        Args:
+            frame: klatka minigry (BGR uint8)
+            cx, cy: srodek kandydata
+
+        Returns:
+            (True/False, prob) — True jesli CNN potwierdza rybke
+        """
+        if self.patch_cnn is None:
+            return (True, 1.0)  # brak CNN = akceptuj wszystko
+
+        h, w = frame.shape[:2]
+        half = self.PATCH_HALF
+
+        # Wycinek z paddingiem (jesli blisko krawedzi)
+        x1, y1 = cx - half, cy - half
+        x2, y2 = cx + half, cy + half
+
+        pad_left = max(0, -x1)
+        pad_top = max(0, -y1)
+        pad_right = max(0, x2 - w)
+        pad_bot = max(0, y2 - h)
+
+        cx1 = max(0, x1)
+        cy1 = max(0, y1)
+        cx2 = min(w, x2)
+        cy2 = min(h, y2)
+
+        crop = frame[cy1:cy2, cx1:cx2]
+
+        if pad_left or pad_top or pad_right or pad_bot:
+            crop = cv2.copyMakeBorder(crop, pad_top, pad_bot, pad_left, pad_right,
+                                      cv2.BORDER_REFLECT_101)
+
+        if crop.shape[0] != self.PATCH_SIZE or crop.shape[1] != self.PATCH_SIZE:
+            crop = cv2.resize(crop, (self.PATCH_SIZE, self.PATCH_SIZE))
+
+        # Preprocess: BGR float32 [0,1], HWC -> CHW, batch dim
+        inp = crop.astype(np.float32) / 255.0
+        inp = np.transpose(inp, (2, 0, 1))  # HWC -> CHW
+        inp = inp[np.newaxis, ...]  # (1, 3, 32, 32)
+
+        logit = self.patch_cnn.run(None, {'patch': inp})[0][0]
+        prob = float(1.0 / (1.0 + np.exp(-logit)))
+        is_fish = prob > self.PATCH_CNN_THRESHOLD
+
+        return (is_fish, prob)
 
     def _detect_frame(self, frame) -> dict:
         """
@@ -273,14 +365,23 @@ class KosaBot:
             # CNN nie nadaje sie do tego: po zamknieciu minigry dalej widzi WHITE/RED
             color = self.detector.detect_circle_color(frame)
 
-            # Szukanie rybki: bg-sub + shape fallback
+            # Szukanie rybki: bg-sub + shape fallback + weryfikacja Patch CNN
             fish_pos = self.detector.find_fish_position(frame, circle_color=color)
             fish_src = "BG-SUB"
+            cnn_prob = -1.0  # -1 = nie weryfikowano
+
             if fish_pos is None and self.shape_detector is not None:
                 shape_result = self.shape_detector.find_fish_simple(frame)
                 if shape_result is not None:
                     fish_pos = shape_result
                     fish_src = "SHAPE"
+
+            # Weryfikacja Patch CNN — odrzuc false positives (napisy, splash, szum)
+            if fish_pos is not None:
+                is_fish, cnn_prob = self._verify_fish_patch(frame, fish_pos[0], fish_pos[1])
+                if not is_fish:
+                    fish_src = f"{fish_src}!CNN"  # odrzucony przez CNN
+                    fish_pos = None  # CNN mowi: to nie rybka
 
             if fish_pos is not None:
                 last_fish_pos = fish_pos
@@ -311,7 +412,11 @@ class KosaBot:
                     if not spot_blocked:
                         self.input.click_at_fish_fast(fx, fy)
                         click_count += 1
-                        src = f"[{fish_src}]" if fish_pos else "[LAST]"
+                        if fish_pos is not None:
+                            cnn_tag = f" p={cnn_prob:.2f}" if cnn_prob >= 0 else ""
+                            src = f"[{fish_src}{cnn_tag}]"
+                        else:
+                            src = "[LAST]"
                         if click_count % 5 == 1:  # loguj co 5 klikniec
                             print(f"[BOT] Klik #{click_count} w ({fx},{fy}) {src}")
 
@@ -328,7 +433,11 @@ class KosaBot:
 
             # Debug: podglad na zywo
             if self.debug:
-                if not self._show_debug(frame, color, click_count, last_fish_pos):
+                extra = {
+                    'fish_src': fish_src,
+                    'cnn_prob': cnn_prob,
+                }
+                if not self._show_debug(frame, color, click_count, last_fish_pos, extra):
                     return False
 
             time.sleep(SCAN_INTERVAL)
@@ -392,18 +501,34 @@ class KosaBot:
             cv2.putText(display, "Rybka: ???", (10, 90),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 100, 100), 1)
 
-        # Dodatkowe info (CNN state, confidence, metoda)
+        # Dodatkowe info (Patch CNN, metoda detekcji)
         if extra:
+            fish_src = extra.get('fish_src', '')
+            cnn_prob = extra.get('cnn_prob', -1.0)
             method = extra.get('method', '')
             state = extra.get('state', '')
             conf = extra.get('conf', 0)
-            fish_src = extra.get('fish_src', '')
-            label = f"[{method}] {state} ({conf:.0%})"
+
+            parts = []
+            if method:
+                parts.append(f"[{method}] {state} ({conf:.0%})")
             if fish_src:
-                label += f" fish:{fish_src}"
-            cv2.putText(display, label,
-                        (10, display.shape[0] - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.35, (200, 200, 0), 1)
+                parts.append(f"src:{fish_src}")
+            if cnn_prob >= 0:
+                parts.append(f"CNN:{cnn_prob:.2f}")
+            label = " | ".join(parts) if parts else ""
+
+            if label:
+                # Kolor: zielony jesli CNN potwierdza, czerwony jesli odrzuca
+                if "!CNN" in fish_src:
+                    label_color = (0, 0, 255)  # czerwony — odrzucony
+                elif cnn_prob >= 0.5:
+                    label_color = (0, 255, 0)  # zielony — potwierdzony
+                else:
+                    label_color = (200, 200, 0)  # zolty — brak info
+                cv2.putText(display, label,
+                            (10, display.shape[0] - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.35, label_color, 1)
 
         cv2.imshow("Kosa Bot", display)
         if cv2.waitKey(1) & 0xFF == ord('q'):
