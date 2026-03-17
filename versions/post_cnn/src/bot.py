@@ -1,28 +1,31 @@
 """
 Glowna petla bota Kosa — wersja POST CNN.
 
-Obsluguje dwa tryby detekcji:
-- CNN (domyslny): FishNet — lekka siec neuronowa, <5ms/klatke, ONNX Runtime
-- Klasyczny (fallback): background subtraction + filtry HSV
+Pipeline detekcji (w play_fishing_round):
+1. detect_circle_color() [HSV]      → stan gry: white/red/none
+2. find_fish_position() [bg-sub]    → pozycja rybki (mediana 15 klatek)
+3. find_fish_simple() [shape]       → fallback: tlo referencyjne + blob
+4. _verify_fish_patch() [PatchCNN]  → weryfikacja 32x32 ONNX (fish/not_fish)
 
-CNN eliminuje problemy wersji PRE CNN:
-- Rozpoznaje napisy HIT/MISS jako osobne klasy (zero false positives)
-- Dziala na POJEDYNCZEJ klatce (bez historii/bufora/warmup)
-- Stala skutecznosc niezalezna od czasu trwania gry
+Uwaga: FishNet CNN (self.cnn, _detect_frame) jest zaladowany ale NIEUZYWANY
+w petli gry — stan okregu wykrywa klasyczny HSV detektor. CNN blokowal
+start kolejnych rund (wykrywal WHITE/RED po zamknieciu minigry).
 
 Cykl zycia jednej rundy:
 1. Uzyj robaka (F4)
 2. Zarzuc wedke (SPACJA)
 3. Czekaj az okienko "Lowienie" sie pojawi
 4. Skanuj okrag:
-   - Czerwony = kliknij LPM (rybka w srodku)
-   - Bialy = czekaj (rybka poza)
-   - HIT_TEXT/MISS_TEXT = ignoruj klatke
-   - Brak = minigra sie skonczyla
-5. Po 3 trafieniach lub koncu czasu -> wracamy do kroku 1
+   - Czerwony = kliknij LPM w potwierdzona pozycje rybki
+   - Bialy = czekaj, sledz rybke
+   - Brak x15 klatek = minigra sie skonczyla
+5. Pauza 3s -> wracamy do kroku 1
 
 Zabezpieczenia:
-- pyautogui.FAILSAFE = True (rusz mysz w lewy gorny rog zeby przerwac)
+- _clamp_to_circle() — klik max 54px od srodka
+- Same-spot limiter — max 3 kliki w 15px promieniu
+- PatchCNN verifier — odrzuca false positives (napisy, splash)
+- pyautogui.FAILSAFE (rusz mysz w lewy gorny rog zeby przerwac)
 - Klawisz 'q' w oknie podgladu zamyka bota
 - Ctrl+C w terminalu tez zamyka
 """
