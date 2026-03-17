@@ -1,0 +1,142 @@
+================================================================================
+  TODO — WERSJA POST CNN
+  Ostatnia aktualizacja: 2026-03-17
+================================================================================
+
+FAZA 1 — Quick fixes (bugi)
+=============================
+
+[ ] 10. Fix total_catches counter
+    Plik: src/bot.py
+    Problem: self.total_catches inicjalizowane na 0, wyswietlane w overlay
+             i podsumowaniu, ale NIGDY nie inkrementowane — zawsze 0.
+    Fix: po play_fishing_round(), jesli click_count >= CLICKS_TO_WIN (3)
+         → self.total_catches += 1
+    Uwaga: play_fishing_round() nie zwraca click_count, trzeba zwrocic
+           lub liczyc na poziomie run().
+
+[ ] 11. Reset last_fish_pos na zmianie fazy white→red
+    Plik: src/bot.py, play_fishing_round()
+    Problem: last_fish_pos pamięta pozycję z białej fazy. Kiedy zmienia
+             się na czerwoną i bg-sub jeszcze nie ma modelu (3 klatki warmup),
+             bot klika w stalą pozycję z białej fazy — może być zupełnie
+             nieprawidłowa bo rybka się przesunęła.
+    Fix: dodac last_fish_pos = None gdy color zmienia sie na "red"
+         (lub ogolnie na zmianie fazy white↔red).
+
+[ ] 12. Jawne pyautogui.FAILSAFE = True
+    Plik: src/bot.py, metoda run()
+    Problem: docstring mowi ze FAILSAFE jest aktywny, ale nigdzie nie jest
+             ustawiony jawnie. Polega na domyslnej wartosci pyautogui.
+    Fix: dodac `import pyautogui; pyautogui.FAILSAFE = True` na poczatku run().
+
+
+FAZA 2 — Debug & widocznosc
+=============================
+
+[ ] 13. FPS counter w debug overlay
+    Plik: src/bot.py, _show_debug() + play_fishing_round()
+    Problem: brak informacji o wydajnosci w oknie debug. Nie wiadomo
+             czy pipeline nadaza z 33 FPS (budzet 30ms/klatke).
+    Fix: time.perf_counter() na poczatku i koncu klatki,
+         wyswietl ms/frame i FPS w overlay (srednia kroczaca ~30 klatek).
+
+[ ] 19. Statystyki sesji
+    Plik: src/bot.py
+    Problem: brak zbiorczych danych o skutecznosci. Nie wiadomo ile razy
+             CNN odrzucil kandydata, ile razy shape fallback zadziałał,
+             jaki % klatek mial rybke, sredni czas rundy itp.
+    Fix: dodac counters w __init__ lub jako dict:
+         - cnn_rejected: int (PatchCNN odrzucenia)
+         - shape_used: int (fallback shape detector)
+         - bg_sub_found: int (bg-sub znalazl)
+         - total_frames: int
+         - total_clicks: int
+         - round_durations: list[float]
+         Wyswietlic w podsumowaniu na koniec + opcjonalnie w overlay.
+
+
+FAZA 3 — Sprzatanie kodu
+==========================
+
+[ ] 14. Usun dead code
+    Pliki: src/bot.py, src/fishing_detector.py
+    Do usuniecia:
+      - bot.py: _detect_frame() (~60 linii) — nigdzie nie wywolywany
+      - fishing_detector.py: _is_red_blob() — nigdzie nie wywolywany
+      - fishing_detector.py: predict_fish_position() — nigdzie nie wywolywany
+    Zostawic: FishNetInference import + self.cnn w __init__ (moze byc
+              przydatne do przyszlej detekcji HIT/MISS wyniku rundy).
+
+[ ] 15. Fix mylacych logow w __init__
+    Plik: src/bot.py, __init__()
+    Problem: drukuje "TRYB HYBRYDOWY: CNN → rozpoznawanie stanu" ale
+             CNN (FishNet) nie jest uzywany w petli gry. Uzytkownik
+             mysli ze CNN dziala, a tak naprawde jest dead code.
+    Fix: zmienic komunikaty na prawdziwy opis:
+         "[BOT] Pipeline: HSV → bg-sub → shape fallback → PatchCNN weryfikacja"
+         Ewentualnie: nie ladowac FishNet wcale (oszczednosc RAM/ONNX sesji).
+
+
+FAZA 4 — Robustnosc
+=====================
+
+[ ] 16. Logging do pliku (zamiast print)
+    Pliki: src/bot.py (+ opcjonalnie inne)
+    Problem: wszystko leci na print(). Po zamknieciu terminala zero danych.
+             Brak timestampow, brak poziomow (DEBUG/INFO/WARNING/ERROR).
+    Fix: logging module z FileHandler + StreamHandler.
+         Format: "%(asctime)s [%(levelname)s] %(message)s"
+         Plik: logs/kosa_YYYYMMDD_HHMMSS.log
+         Rotacja: max 10 plikow, 5MB kazdy.
+
+[ ] 17. Okresowy focus check w petli gry
+    Plik: src/bot.py, play_fishing_round()
+    Problem: ensure_focus() raz na poczatku rundy. Jesli uzytkownik
+             przelacza okno w trakcie, bot sleplo klika w inne okno.
+    Fix: co ~30 klatek (~1s) sprawdz GetForegroundWindow().
+         Jesli to nie okno gry — pauza + refocus + ostrzezenie.
+
+[ ] 18. Adaptive scan interval
+    Plik: src/bot.py, play_fishing_round()
+    Problem: SCAN_INTERVAL = 0.03s (33 FPS) staly, niezaleznie od fazy.
+             W bialej fazie (czekanie) mozna wolniej. W czerwonej (klikanie)
+             im szybciej tym lepiej.
+    Fix: white → sleep(0.05) (20 FPS, oszczednosc CPU)
+         red   → sleep(0.015) (67 FPS, szybsza reakcja)
+         none  → sleep(0.05) (rzadkie sprawdzanie)
+
+
+FAZA 5 — Dane dla przyszlosci
+===============================
+
+[ ] 20. Live patch collector
+    Plik: nowy plik cnn/live_collector.py + integracja w bot.py
+    Problem: PatchCNN trenowany na 501 patchach — malo danych.
+             Przyszly re-train potrzebuje wiecej przykladow,
+             szczegolnie tych ktore CNN odrzuca (potencjalne bledy).
+    Fix: podczas gry, co N-ta klatka (np. co 10):
+         - jesli fish_pos znaleziony → zapisz 32x32 patch + metadane
+         - jesli CNN odrzucil → zapisz z flagą "rejected"
+         Folder: cnn/live_patches/session_YYYYMMDD_HHMMSS/
+         Format: JSON manifest + pliki PNG.
+         Pozniej: review tool (istniejacy patch_dataset.py review) + re-train.
+
+
+NOTATKI
+========
+- FishNet CNN (kolor/stan) jest zaladowany ale NIEUZYWANY w petli gry.
+  Powod: po zamknieciu minigry CNN dalej wykrywal WHITE/RED → bot nie
+  startowal kolejnej rundy. Wrócono do klasycznego HSV.
+  Moze przydac sie do detekcji HIT/MISS wyniku rundy w przyszlosci.
+
+- PatchCNN (fish/not_fish): 99.4% acc, 100% recall, 94% precision.
+  3 false positives, 0 false negatives na 501 zweryfikowanych patchach.
+  Ryzyko overfitting: maly dataset, non-stratified split, oversampling.
+
+- Mediana 15 klatek (bg-sub) jest najdrozszą operacją (~15ms co 3 klatki).
+  Alternatywa: running average (szybsza, ale mniej odporna na outliry).
+
+- Hardcoded koordynaty: okno gry (0,0), fishing box (538,288), 279x247.
+  Jakakolwiek zmiana rozdzielczosci/pozycji = bot nie dziala.
+  Auto-kalibracja (template match na UI) to duzy task na przyszlosc.
