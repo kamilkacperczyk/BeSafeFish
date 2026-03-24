@@ -1,46 +1,53 @@
 """
-Baza uzytkownikow BeSafeFish (PostgreSQL / Supabase).
+Baza uzytkownikow BeSafeFish - polaczenie przez API serwera.
 
-Laczy sie z baza przez DATABASE_URL_ADMIN z pliku .env.
-Hasla hashowane po stronie bazy (bcrypt przez pgcrypto).
+Aplikacja desktopowa NIE laczy sie bezposrednio z baza danych.
+Zamiast tego wysyla requesty do backendu na Render (server.py),
+ktory obsluguje polaczenie z Supabase.
+
+Dzieki temu uzytkownik nie musi konfigurowac .env ani znac
+connection stringa do bazy - wystarczy pobrac i uruchomic .exe.
 """
 
-import os
-import psycopg2
-from dotenv import load_dotenv
+import json
+import urllib.request
+import urllib.error
 
-# Zaladuj .env z katalogu post_cnn/
-_env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env")
-load_dotenv(_env_path)
-
-DATABASE_URL = os.getenv("DATABASE_URL_ADMIN")
-GUI_SYSTEM_USER_ID = 5  # id usera "Rejestracja_GUI" w tabeli users
+API_URL = "https://kosa-h283.onrender.com"
 
 
-def _get_connection():
-    """Zwraca polaczenie do PostgreSQL (Supabase)."""
-    if not DATABASE_URL:
-        raise RuntimeError(
-            "Brak DATABASE_URL_ADMIN w .env. Skopiuj .env.example jako .env i uzupelnij dane."
+def _api_request(endpoint, data=None):
+    """Wysyla request do API serwera BeSafeFish."""
+    url = f"{API_URL}{endpoint}"
+    if data is not None:
+        body = json.dumps(data).encode("utf-8")
+        req = urllib.request.Request(
+            url, data=body, headers={"Content-Type": "application/json"}
         )
-    return psycopg2.connect(DATABASE_URL)
+    else:
+        req = urllib.request.Request(url)
+
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.URLError:
+        return {"ok": False, "msg": "Brak polaczenia z serwerem. Sprawdz internet."}
+    except Exception as e:
+        return {"ok": False, "msg": f"Blad polaczenia: {e}"}
 
 
 def init_db():
-    """Sprawdza polaczenie z baza. Tabele juz istnieja na Supabase (migracja)."""
-    try:
-        conn = _get_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT 1")
-        cur.close()
-        conn.close()
-    except Exception as e:
-        raise RuntimeError(f"Nie mozna polaczyc z baza danych: {e}")
+    """Sprawdza czy serwer API dziala."""
+    result = _api_request("/api/health")
+    if not result.get("ok"):
+        raise RuntimeError(
+            "Nie mozna polaczyc z serwerem BeSafeFish. Sprawdz polaczenie z internetem."
+        )
 
 
 def register_user(username: str, email: str, password: str) -> tuple:
     """
-    Rejestruje nowego uzytkownika przez funkcje create_user_short.
+    Rejestruje nowego uzytkownika przez API serwera.
 
     Returns:
         (success: bool, message: str)
@@ -52,53 +59,24 @@ def register_user(username: str, email: str, password: str) -> tuple:
     if not email:
         return False, "Podaj adres email."
 
-    try:
-        conn = _get_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "SET LOCAL app.current_user_id = %s", (str(GUI_SYSTEM_USER_ID),)
-        )
-        cur.execute(
-            "SELECT create_user_short(%s, %s, %s, 'user')",
-            (username, email, password),
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
-        return True, "Konto utworzone pomyslnie"
-    except psycopg2.errors.UniqueViolation:
-        return False, "Uzytkownik o tej nazwie juz istnieje."
-    except Exception as e:
-        return False, f"Blad rejestracji: {e}"
+    result = _api_request("/api/register", {
+        "username": username,
+        "email": email,
+        "password": password,
+        "source": "gui",
+    })
+    return result.get("ok", False), result.get("msg", "Nieznany blad")
 
 
 def authenticate_user(username: str, password: str) -> tuple:
     """
-    Loguje uzytkownika (sprawdza haslo przez bcrypt w bazie).
+    Loguje uzytkownika przez API serwera.
 
     Returns:
         (success: bool, message: str)
     """
-    try:
-        conn = _get_connection()
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT id FROM users
-            WHERE login = %s
-              AND password_hash = extensions.crypt(%s, password_hash)
-              AND is_active = true
-              AND deleted_at IS NULL
-            """,
-            (username, password),
-        )
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
-
-        if row:
-            return True, "Zalogowano pomyslnie"
-        else:
-            return False, "Nieprawidlowa nazwa uzytkownika lub haslo."
-    except Exception as e:
-        return False, f"Blad logowania: {e}"
+    result = _api_request("/api/login", {
+        "username": username,
+        "password": password,
+    })
+    return result.get("ok", False), result.get("msg", "Nieznany blad")

@@ -14,11 +14,8 @@ a = Analysis(
         ('gui\\fish.ico', 'gui'),
         ('cnn\\models\\fish_patch_cnn.onnx', 'cnn\\models'),
         ('cnn\\models\\fish_patch_cnn.onnx.data', 'cnn\\models'),
-        ('.env.example', '.'),
     ],
     hiddenimports=[
-        'psycopg2',
-        'dotenv',
         'PySide6.QtSvg',
     ],
     hookspath=[],
