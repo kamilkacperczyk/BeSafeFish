@@ -10,6 +10,7 @@ Przed wprowadzaniem zmian przeczytaj odpowiedni plik:
 | `versions/post_cnn/docs/struktura-bazy.md` | Tabele, funkcje SQL, diagram, przeplywy biznesowe | ...pracujesz nad SQL, dodajesz tabele/funkcje |
 | `versions/post_cnn/docs/zasady-sql.md` | Konwencje nazewnictwa, checklist zmian w bazie, zapytania diagnostyczne | ...zmieniasz kolumne/tabele/funkcje/enum w SQL |
 | `versions/post_cnn/cnn/ARCHITEKTURA_CNN.md` | Model PatchCNN, trening, inference, ONNX | ...pracujesz nad CNN/modelem |
+| `versions/post_cnn/docs/regulamin-i-rodo.md` | Regulamin, RODO, checkbox akceptacji, retencja danych | ...dodajesz rejestracje, zbierasz dane osobowe, IP |
 | `SECURITY.md` | Zasady bezpieczenstwa | ...dotykasz auth, hasel, connection stringow |
 
 **WAZNE**: Po dodaniu tabeli, funkcji SQL lub endpointu API — zaktualizuj odpowiedni plik docs!
