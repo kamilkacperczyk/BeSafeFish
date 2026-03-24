@@ -3,147 +3,117 @@
 ## Architektura systemu
 
 ```
-[Użytkownik]
+[Uzytkownik]
     |
     |-- [Strona WWW] -----> [Serwer Render.com] -----> [Supabase PostgreSQL]
     |                         (server.py / Flask)        (baza danych)
+    |                         Connection Pool
+    |                         gunicorn gthread
     |
     |-- [Aplikacja .exe] --> [Serwer Render.com] -----> [Supabase PostgreSQL]
          (gui/db.py)          (te same endpointy)
+         urllib + JSON
 ```
 
-### Przepływ danych
-1. Użytkownik wchodzi na stronę WWW lub uruchamia aplikację .exe
-2. Rejestracja/logowanie wysyłane jako HTTP POST (JSON) do serwera Render
-3. Serwer Render łączy się z bazą Supabase (psycopg2) i zwraca odpowiedź
+### Przeplyw danych
+1. Uzytkownik wchodzi na strone WWW lub uruchamia aplikacje .exe
+2. Rejestracja/logowanie wyslane jako HTTP POST (JSON) do serwera Render
+3. Serwer pobiera polaczenie z ThreadedConnectionPool, wykonuje zapytanie, zwraca do poola
 4. Aplikacja/strona pokazuje wynik
 
-### Dlaczego NIE łączymy się bezpośrednio z bazą?
+### Dlaczego NIE laczymy sie bezposrednio z baza?
 
-**Problem z bezpośrednim połączeniem:**
-- Connection string (login + hasło do bazy) musiałby być w aplikacji .exe
-- Każdy może wyciągnąć go z pliku wykonywalnego (np. strings, dekompilacja)
-- Użytkownik musiałby ręcznie konfigurować plik .env z danymi bazy
-- Zwykły użytkownik (nie programista) nie potrafi tego zrobić
-
-**Rozwiązanie - API jako pośrednik:**
-- Connection string jest TYLKO na serwerze (zmienne środowiskowe Render)
-- Aplikacja .exe zna tylko adres URL serwera (publiczny)
-- Serwer kontroluje co można zrobić z bazą (tylko login, rejestracja, health check)
-- Użytkownik pobiera .exe, uruchamia i działa - zero konfiguracji
+- Connection string w .exe = kazdy moze go wyciagnac (strings, dekompilacja)
+- Uzytkownik musialby recznie konfigurowac .env
+- **Rozwiazanie**: Klient -> HTTP/JSON -> serwer API -> baza. Sekrety tylko na serwerze.
 
 ## Serwer (Render.com)
 
+### Connection pooling
+- `ThreadedConnectionPool(minconn=1, maxconn=4)` — leniwa inicjalizacja
+- `before_request`: pobiera polaczenie z poola do `g.db_conn`
+- `teardown_request`: zwraca polaczenie (rollback + close przy bledzie)
+- Bezpieczne z gunicorn `--preload` (kazdy worker tworzy wlasny pool)
+
+### Gunicorn config (`gunicorn.conf.py`)
+- `workers=2, threads=2` — 4 rownolegle requesty (max dla 512MB RAM)
+- `worker_class=gthread` — wielowatkowosc w jednym procesie
+- `preload_app=True` — wspoldzielony kod, mniej RAM
+- `timeout=120` — zapas na cold start
+
 ### Endpointy API
 
-| Endpoint | Metoda | Opis | Kto używa |
+| Endpoint | Metoda | Opis | Kto uzywa |
 |----------|--------|------|-----------|
-| `/` | GET | Strona WWW (pliki statyczne) | Przeglądarka |
-| `/api/register` | POST | Rejestracja użytkownika | Strona + GUI .exe |
-| `/api/login` | POST | Logowanie użytkownika | GUI .exe |
-| `/api/health` | GET | Sprawdzenie czy serwer działa | GUI .exe (init_db) |
+| `/` | GET | Strona WWW (pliki statyczne) | Przegladarka |
+| `/api/register` | POST | Rejestracja uzytkownika | Strona + GUI .exe |
+| `/api/login` | POST | Logowanie (zwraca user_id + subscription) | GUI .exe |
+| `/api/health` | GET | Sprawdzenie czy serwer dziala | GUI .exe (health check) |
+| `/api/subscription/<user_id>` | GET | Aktualny plan usera (z lazy expiration) | GUI .exe |
+| `/api/payments/<user_id>` | GET | Historia platnosci (TOP 50) | GUI .exe |
+| `/api/plans` | GET | Lista dostepnych planow | GUI .exe |
+| `/api/usage/<user_id>` | GET | Dzienne zuzycie rund (bez inkrementacji) | GUI .exe |
+| `/api/round/use` | POST | Sprawdzenie limitu + inkrementacja rund | GUI .exe (bot) |
 
 ### Parametr `source` w rejestracji
-Serwer rozróżnia skąd przyszła rejestracja:
-- `source: "web"` (domyślne) - rejestracja przez stronę → `created_by = Rejestracja_WEB (id=7)`
-- `source: "gui"` - rejestracja przez aplikację → `created_by = Rejestracja_GUI (id=5)`
+- `source: "web"` (domyslne) → `created_by = Rejestracja_WEB (id=7)`
+- `source: "gui"` → `created_by = Rejestracja_GUI (id=5)`
 
-### Zmienne środowiskowe na Render
-| Zmienna | Opis | Przykład |
-|---------|------|---------|
-| `DATABASE_URL_ADMIN` | Connection string Supabase (SEKRET) | `postgresql://user:pass@host:5432/db` |
-| `WEB_SYSTEM_USER_ID` | ID użytkownika systemowego WEB | `7` |
-| `GUI_SYSTEM_USER_ID` | ID użytkownika systemowego GUI | `5` |
-| `PYTHON_VERSION` | Wersja Pythona na Render | `3.12` |
+### Zmienne srodowiskowe na Render
+| Zmienna | Opis |
+|---------|------|
+| `DATABASE_URL_ADMIN` | Connection string Supabase (SEKRET) |
+| `WEB_SYSTEM_USER_ID` | ID uzytkownika systemowego WEB (domyslnie 7) |
+| `GUI_SYSTEM_USER_ID` | ID uzytkownika systemowego GUI (domyslnie 5) |
+| `PYTHON_VERSION` | Wersja Pythona na Render (3.12) |
 
-### Darmowy plan Render - ograniczenia
-- **Usypianie**: serwis zasypia po 15 min bezczynności, pierwsze wejście ~30-50s
-- **750 godzin/miesiąc**: wystarczy na 1 serwis 24/7
-- **512 MB RAM**: wystarczy dla Flask
+### Darmowy plan Render — ograniczenia
+- **Usypianie**: po 15 min bezczynnoci, cold start ~30-50s
+- **750 godzin/miesiac**: wystarczy na 1 serwis 24/7
+- **512 MB RAM**: wystarczy dla Flask + pool
 - **Brak custom domeny z SSL**: tylko `*.onrender.com`
-- **Auto-deploy**: każdy push na main przebudowuje stronę
+- **Auto-deploy**: push na main przebudowuje (ale TYLKO jesli zmiana w rootDir)
 
 ### Co gdy Render padnie?
-- Aplikacja .exe nie może się zalogować ani zarejestrować
-- Bot (łowienie) działa lokalnie i nie potrzebuje serwera
-- Rozwiązanie: migracja na inny hosting (patrz niżej)
+- Aplikacja .exe: logowanie/rejestracja nie dziala. Bot (lowienie) dziala lokalnie.
+- Rozwiazanie: migracja na inny hosting (patrz nizej)
+- Alternatywy: Koyeb (free, always-on), Railway ($5/mies), Fly.io (free, ~2-5s cold start)
 
-## Migracja na inny hosting (z Render)
+## Migracja na inny hosting
 
-### Krok po kroku
 1. Skopiuj folder `versions/post_cnn/website/` na nowy serwer
-2. Zainstaluj zależności: `pip install -r requirements.txt`
-3. Ustaw zmienne środowiskowe: `DATABASE_URL_ADMIN`, `WEB_SYSTEM_USER_ID`, `GUI_SYSTEM_USER_ID`
-4. Uruchom: `gunicorn server:app` (Linux) lub `waitress-serve server:app` (Windows)
-5. **WAŻNE**: zaktualizuj `API_URL` w `gui/db.py` na nowy adres serwera
-6. Przebuduj .exe i wrzuć nowy release
-
-### Co wziąć pod uwagę
-- Nowy hosting MUSI obsługiwać Python + Flask
-- HTTPS jest wymagane (aplikacja wysyła hasła)
-- Connection string Supabase się nie zmienia - zmienia się tylko hosting serwera
-- Upewnij się że nowy serwer ma dostęp do Supabase (IPv4, poprawny region)
+2. `pip install -r requirements.txt`
+3. Ustaw zmienne: `DATABASE_URL_ADMIN`, `WEB_SYSTEM_USER_ID`, `GUI_SYSTEM_USER_ID`
+4. Uruchom: `gunicorn -c gunicorn.conf.py server:app` (Linux) lub `waitress-serve server:app` (Windows)
+5. **WAZNE**: zaktualizuj `API_URL` w `gui/db.py` na nowy adres serwera
+6. Przebuduj .exe i wrzuc nowy release na GitHub
 
 ## Budowanie .exe (PyInstaller)
 
-### Jak zbudować
 ```bash
 cd versions/post_cnn
-py -m PyInstaller BeSafeFish.spec --clean -y
+py -m PyInstaller BeSafeFish.spec -y
 ```
 
-### Co robi .spec
-- `onedir` - tworzy folder (nie jeden plik) - mniejszy i szybciej się uruchamia
-- `uac_admin=True` - Windows automatycznie wymaga uprawnień Administratora
-- `excludes=['torch', 'torchvision', 'matplotlib', 'tkinter']` - wyklucza niepotrzebne biblioteki
-- Dołącza: ikonę, model ONNX, pliki CNN
-
-### Co wziąć pod uwagę
-- .exe nie zawiera psycopg2 ani python-dotenv (niepotrzebne - łączy się przez API)
-- .exe zawiera URL serwera w `gui/db.py` - przy zmianie serwera trzeba przebudować
-- Wynikowy .zip waży ~110 MB - za duży na zwykły commit w Git (limit 100 MB)
+- `onedir` — folder, nie jeden plik (mniejszy, szybciej sie uruchamia)
+- `uac_admin=True` — Windows wymaga Administratora
+- `excludes=['torch', 'torchvision', 'matplotlib', 'tkinter']`
+- Dolacza: ikone, model ONNX (.onnx + .onnx.data)
+- Wynikowy .zip ~110 MB → GitHub Releases (nie commit)
 
 ## GitHub Releases
 
-### Dlaczego Releases zamiast commita
-- Git ma limit **100 MB** na pojedynczy plik
-- GitHub Releases ma limit **2 GB** per asset
-- Release jest powiązany z tagiem (wersją) - łatwo śledzić wersje
-- Link do pobrania jest stały: `releases/latest/download/NazwaPliku.zip`
+- Git limit 100 MB/plik, Releases limit 2 GB/asset
+- Link `releases/latest/download/BeSafeFish.zip` — zawsze najnowszy
+- Strona linkuje do tego URL — nie trzeba aktualizowac strony przy nowym buildzie
 
-### Jak wrzucić nowy release
 ```bash
-# Usuń stary release
-gh release delete v1.0.0 --yes
-
-# Stwórz nowy z plikiem
-gh release create v1.0.0 \
-  "versions/post_cnn/dist/BeSafeFish.zip#BeSafeFish v1.0 (Windows 11)" \
-  --title "BeSafeFish v1.0" \
-  --notes "Opis zmian..."
+# Wymien asset w istniejacym release
+gh release delete-asset v1.2.0 BeSafeFish.zip --yes
+gh release upload v1.2.0 "versions/post_cnn/dist/BeSafeFish.zip" --clobber
 ```
 
-### Co wziąć pod uwagę
-- Tag (np. `v1.0.0`) musi być unikalny
-- Link `releases/latest/download/` zawsze wskazuje na najnowszy release
-- Strona WWW linkuje do `releases/latest/download/BeSafeFish.zip` - nie trzeba aktualizować strony przy nowym buildzie
-- Przed usunięciem starego release upewnij się że nowy .zip jest gotowy
-
-## Supabase - pgcrypto w schema extensions
-
-Supabase instaluje pgcrypto w schema `extensions`, nie `public`.
-
-**W kodzie Python (zapytania bezpośrednie):**
-```sql
--- TAK
-SELECT ... WHERE password_hash = extensions.crypt(%s, password_hash)
-
--- NIE (nie zadziała)
-SELECT ... WHERE password_hash = crypt(%s, password_hash)
-```
-
-**W funkcjach SQL (SECURITY DEFINER):**
-```sql
-CREATE FUNCTION ... SECURITY DEFINER SET search_path = public, extensions AS $$
--- tutaj crypt() działa bez prefiksu bo search_path zawiera extensions
-```
+## Wazne zasady
+- Wersja musi byc spojna: GUI footer (dashboard.py), strona (index.html), Release tag
+- pgcrypto na Supabase: `extensions.crypt()` (schema `extensions`, nie `public`)
+- Przy zmianie serwera: zaktualizuj API_URL w db.py + przebuduj .exe
