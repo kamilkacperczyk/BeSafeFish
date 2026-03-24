@@ -135,9 +135,22 @@ def login():
     if not username or not password:
         return jsonify({"ok": False, "msg": "Wypelnij wszystkie pola."})
 
+    ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+    user_agent = request.headers.get("User-Agent", "")
+
     try:
         conn = g.db_conn
         cur = conn.cursor()
+
+        # Znajdz usera po loginie (potrzebne do login_history nawet przy blednym hasle)
+        cur.execute(
+            "SELECT id FROM users WHERE login = %s AND deleted_at IS NULL",
+            (username,),
+        )
+        user_row = cur.fetchone()
+        found_user_id = user_row[0] if user_row else None
+
+        # Sprawdz haslo
         cur.execute(
             """
             SELECT id FROM users
@@ -151,10 +164,30 @@ def login():
         row = cur.fetchone()
 
         if not row:
+            # Nieudane logowanie - zapisz do historii
+            failure_reason = "Nieprawidlowe haslo" if found_user_id else "Nieznany login"
+            cur.execute(
+                """
+                INSERT INTO login_history (user_id, success, ip_address, user_agent, failure_reason)
+                VALUES (%s, false, %s, %s, %s)
+                """,
+                (found_user_id, ip_address, user_agent, failure_reason),
+            )
+            conn.commit()
             cur.close()
             return jsonify({"ok": False, "msg": "Nieprawidlowa nazwa uzytkownika lub haslo."})
 
         user_id = row[0]
+
+        # Udane logowanie - zapisz do historii
+        cur.execute(
+            """
+            INSERT INTO login_history (user_id, success, ip_address, user_agent)
+            VALUES (%s, true, %s, %s)
+            """,
+            (user_id, ip_address, user_agent),
+        )
+        conn.commit()
 
         # Pobierz dane subskrypcji (z lazy expiration)
         cur.execute("SELECT * FROM check_user_subscription(%s)", (user_id,))
