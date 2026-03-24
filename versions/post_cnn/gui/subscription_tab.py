@@ -1,5 +1,9 @@
 """
 Zakladka Subskrypcja — wyswietla aktualny plan, zuzycie rund, porownanie planow i historie platnosci.
+
+Dane poczatkowe z loginu (bez dodatkowych requestow).
+Zuzycie rund aktualizowane lokalnie (+1 z kazda runda bota).
+Plany i platnosci ladowane w tle przy pierwszym otwarciu.
 """
 
 from PySide6.QtWidgets import (
@@ -8,9 +12,31 @@ from PySide6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QHeaderView, QScrollArea,
     QProgressBar,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Signal
 
-from gui.db import get_subscription, get_payments, get_plans, get_daily_usage
+
+class _DataLoaderThread(QThread):
+    """Laduje plany i platnosci w tle (nie blokuje GUI)."""
+    done = Signal(list, list, int, int)  # plans, payments, rounds_used, max_rounds
+
+    def __init__(self, user_id):
+        super().__init__()
+        self._user_id = user_id
+
+    def run(self):
+        from gui.db import get_plans, get_payments, get_daily_usage
+
+        plans_result = get_plans()
+        plans = plans_result.get("plans", [])
+
+        payments_result = get_payments(self._user_id)
+        payments = payments_result.get("payments", [])
+
+        usage_result = get_daily_usage(self._user_id)
+        rounds_used = usage_result.get("rounds_used", 0) if usage_result.get("ok") else 0
+        max_rounds = usage_result.get("max_rounds", 0) if usage_result.get("ok") else 0
+
+        self.done.emit(plans, payments, rounds_used, max_rounds)
 
 
 class SubscriptionTab(QWidget):
@@ -20,7 +46,10 @@ class SubscriptionTab(QWidget):
         super().__init__()
         self._user_id = user_id
         self._subscription = subscription or {}
+        self._rounds_used = 0
+        self._max_rounds = 0
         self._setup_ui()
+        self._load_data_async()
 
     def _setup_ui(self):
         scroll = QScrollArea()
@@ -32,25 +61,12 @@ class SubscriptionTab(QWidget):
         layout.setSpacing(20)
         layout.setContentsMargins(16, 16, 16, 16)
 
-        # === HEADER + REFRESH ===
-        header_row = QHBoxLayout()
+        # === HEADER ===
         page_title = QLabel("Twoja subskrypcja")
         page_title.setStyleSheet(
             "font-size: 20px; font-weight: bold; color: #53a8b6;"
         )
-        header_row.addWidget(page_title)
-        header_row.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
-
-        refresh_btn = QPushButton("Odswiez")
-        refresh_btn.setObjectName("refreshButton")
-        refresh_btn.setStyleSheet(
-            "QPushButton { background-color: #0f3460; color: #53a8b6; border: 1px solid #53a8b6; "
-            "border-radius: 6px; padding: 6px 16px; font-size: 12px; font-weight: bold; }"
-            "QPushButton:hover { background-color: #16213e; color: #17b890; border-color: #17b890; }"
-        )
-        refresh_btn.clicked.connect(self._refresh_data)
-        header_row.addWidget(refresh_btn)
-        layout.addLayout(header_row)
+        layout.addWidget(page_title)
 
         # === AKTUALNY PLAN — karta ===
         self._plan_card = QFrame()
@@ -66,10 +82,6 @@ class SubscriptionTab(QWidget):
         plan_header_row.addStretch()
 
         self._plan_badge = QLabel()
-        self._plan_badge.setStyleSheet(
-            "background-color: #1b998b; color: white; font-size: 10px; font-weight: bold; "
-            "padding: 2px 10px; border-radius: 10px;"
-        )
         plan_header_row.addWidget(self._plan_badge)
         card_layout.addLayout(plan_header_row)
 
@@ -80,7 +92,6 @@ class SubscriptionTab(QWidget):
         self._plan_status_label.setStyleSheet("color: #888; font-size: 12px;")
         card_layout.addWidget(self._plan_status_label)
 
-        # Separator w karcie
         card_sep = QFrame()
         card_sep.setFrameShape(QFrame.HLine)
         card_sep.setStyleSheet("background-color: #0f3460; max-height: 1px;")
@@ -104,7 +115,7 @@ class SubscriptionTab(QWidget):
         usage_header.setStyleSheet("color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;")
         usage_layout.addWidget(usage_header)
 
-        self._usage_text = QLabel()
+        self._usage_text = QLabel("Ladowanie...")
         self._usage_text.setStyleSheet("font-size: 24px; font-weight: bold; color: #e0e0e0;")
         usage_layout.addWidget(self._usage_text)
 
@@ -117,6 +128,7 @@ class SubscriptionTab(QWidget):
             "QProgressBar { background-color: #0d1117; border: 1px solid #21262d; border-radius: 6px; }"
             "QProgressBar::chunk { background-color: #1b998b; border-radius: 5px; }"
         )
+        self._usage_bar.setVisible(False)
         usage_layout.addWidget(self._usage_bar)
 
         self._usage_hint = QLabel()
@@ -136,6 +148,11 @@ class SubscriptionTab(QWidget):
         self._plans_row.setSpacing(12)
         layout.addLayout(self._plans_row)
 
+        # Placeholder ladowania
+        self._plans_loading = QLabel("Ladowanie planow...")
+        self._plans_loading.setStyleSheet("color: #555; font-style: italic;")
+        self._plans_row.addWidget(self._plans_loading)
+
         # === HISTORIA PLATNOSCI ===
         payments_header = QLabel("Historia platnosci")
         payments_header.setStyleSheet(
@@ -152,6 +169,7 @@ class SubscriptionTab(QWidget):
         self._payments_table.setMinimumHeight(120)
         self._payments_table.setMaximumHeight(200)
         self._payments_table.verticalHeader().setVisible(False)
+        self._payments_table.setVisible(False)
         layout.addWidget(self._payments_table)
 
         self._no_payments_label = QLabel("Brak historii platnosci")
@@ -167,14 +185,30 @@ class SubscriptionTab(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(scroll)
 
-        # Zaladuj dane
+        # Wyswietl dane planu od razu (z loginu, bez API)
         self._update_plan_display()
-        self._load_usage()
-        self._load_plans()
-        self._load_payments()
+
+    def _load_data_async(self):
+        """Laduje plany, platnosci i zuzycie rund w tle."""
+        self._loader = _DataLoaderThread(self._user_id)
+        self._loader.done.connect(self._on_data_loaded)
+        self._loader.start()
+
+    def _on_data_loaded(self, plans, payments, rounds_used, max_rounds):
+        """Callback z watku — aktualizuje UI."""
+        self._rounds_used = rounds_used
+        self._max_rounds = max_rounds
+        self._update_usage_display()
+        self._display_plans(plans)
+        self._display_payments(payments)
+
+    def increment_round(self):
+        """Wywoływane przez Dashboard po kazdej rundzie bota. Lokalne +1."""
+        self._rounds_used += 1
+        self._update_usage_display()
 
     def _update_plan_display(self):
-        """Aktualizuje wyswietlanie aktualnego planu."""
+        """Aktualizuje wyswietlanie aktualnego planu (dane z loginu)."""
         sub = self._subscription
         if not sub or not sub.get("has_active"):
             self._plan_name_label.setText("Brak aktywnej subskrypcji")
@@ -220,28 +254,20 @@ class SubscriptionTab(QWidget):
 
         self._plan_features_label.setText("\n".join(features_lines) if features_lines else "")
 
-    def _load_usage(self):
-        """Pobiera i wyswietla dzienne zuzycie rund."""
-        result = get_daily_usage(self._user_id)
-        rounds_used = result.get("rounds_used", 0) if result.get("ok") else 0
-        max_rounds = result.get("max_rounds", 0) if result.get("ok") else 0
-
-        if max_rounds == -1:
-            # Bez limitu
-            self._usage_text.setText(f"{rounds_used} rund dzisiaj")
-            self._usage_bar.setMaximum(1)
-            self._usage_bar.setValue(0)
+    def _update_usage_display(self):
+        """Aktualizuje progress bar zuzycia rund."""
+        if self._max_rounds == -1:
+            self._usage_text.setText(f"{self._rounds_used} rund dzisiaj")
             self._usage_bar.setVisible(False)
             self._usage_hint.setText("Twoj plan nie ma limitu dziennych rund")
-        elif max_rounds > 0:
-            remaining = max(0, max_rounds - rounds_used)
-            self._usage_text.setText(f"{rounds_used} / {max_rounds}")
-            self._usage_bar.setMaximum(max_rounds)
-            self._usage_bar.setValue(rounds_used)
+        elif self._max_rounds > 0:
+            remaining = max(0, self._max_rounds - self._rounds_used)
+            self._usage_text.setText(f"{self._rounds_used} / {self._max_rounds}")
+            self._usage_bar.setMaximum(self._max_rounds)
+            self._usage_bar.setValue(self._rounds_used)
             self._usage_bar.setVisible(True)
 
-            # Kolor progress bara w zaleznosci od zuzycia
-            pct = rounds_used / max_rounds if max_rounds > 0 else 0
+            pct = self._rounds_used / self._max_rounds
             if pct >= 0.9:
                 bar_color = "#e63946"
             elif pct >= 0.7:
@@ -258,12 +284,9 @@ class SubscriptionTab(QWidget):
             self._usage_bar.setVisible(False)
             self._usage_hint.setText("Nie mozna pobrac danych o zuzyciu")
 
-    def _load_plans(self):
-        """Pobiera i wyswietla dostepne plany."""
-        result = get_plans()
-        plans = result.get("plans", [])
-
-        # Wyczysc stare karty
+    def _display_plans(self, plans):
+        """Wyswietla karty planow."""
+        # Usun placeholder
         while self._plans_row.count():
             item = self._plans_row.takeAt(0)
             if item.widget():
@@ -298,7 +321,6 @@ class SubscriptionTab(QWidget):
         card_layout = QVBoxLayout(card)
         card_layout.setSpacing(8)
 
-        # Badge "Aktualny" jesli to biezacy plan
         if is_current:
             badge = QLabel("AKTUALNY")
             badge.setStyleSheet(
@@ -314,7 +336,6 @@ class SubscriptionTab(QWidget):
 
         price = plan.get("price", "0.00")
         currency = plan.get("currency", "PLN")
-        period = plan.get("billing_period", "monthly")
 
         if float(price) == 0:
             price_text = "Za darmo"
@@ -334,7 +355,6 @@ class SubscriptionTab(QWidget):
             desc_label.setWordWrap(True)
             card_layout.addWidget(desc_label)
 
-        # Separator
         sep = QFrame()
         sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet("background-color: #0f3460; max-height: 1px;")
@@ -354,7 +374,6 @@ class SubscriptionTab(QWidget):
             feat_label.setStyleSheet("color: #aaa; font-size: 11px;")
             card_layout.addWidget(feat_label)
 
-        # Przycisk
         if is_current:
             btn = QPushButton("Aktualny plan")
             btn.setEnabled(False)
@@ -381,11 +400,8 @@ class SubscriptionTab(QWidget):
         card_layout.addStretch()
         return card
 
-    def _load_payments(self):
-        """Pobiera i wyswietla historie platnosci."""
-        result = get_payments(self._user_id)
-        payments = result.get("payments", [])
-
+    def _display_payments(self, payments):
+        """Wyswietla historie platnosci."""
         if not payments:
             self._payments_table.setVisible(False)
             self._no_payments_label.setVisible(True)
@@ -405,13 +421,3 @@ class SubscriptionTab(QWidget):
             self._payments_table.setItem(i, 1, QTableWidgetItem(amount))
             self._payments_table.setItem(i, 2, QTableWidgetItem(plan))
             self._payments_table.setItem(i, 3, QTableWidgetItem(status))
-
-    def _refresh_data(self):
-        """Odswieza dane subskrypcji z API."""
-        result = get_subscription(self._user_id)
-        if result.get("ok"):
-            self._subscription = result.get("subscription") or {}
-        self._update_plan_display()
-        self._load_usage()
-        self._load_plans()
-        self._load_payments()

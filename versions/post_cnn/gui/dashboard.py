@@ -225,11 +225,12 @@ class Dashboard(QWidget):
                 num = int(msg.split("RUNDA ")[1].split()[0])
                 self._round_count = num
                 self._stats_label.setText(f"Rundy: {self._round_count}")
+                # Aktualizuj progress bar w zakladce subskrypcji
+                self._subscription_tab.increment_round()
             except (ValueError, IndexError):
                 pass
 
-        if "Runda " in msg and "/" in msg:
-            # Aktualizuj statystyki z info o limicie (np. "Runda 5/50")
+        if "[LIMIT] Runda " in msg and "/" in msg:
             try:
                 parts = msg.split("Runda ")[1].split("/")
                 used = parts[0].strip()
