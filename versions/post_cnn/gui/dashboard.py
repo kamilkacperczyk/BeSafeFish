@@ -173,6 +173,9 @@ class Dashboard(QWidget):
         if self._is_running:
             return
 
+        self._round_count = 0
+        self._stats_label.setText("Rundy: 0")
+
         self._log_area.appendPlainText("=" * 40)
         self._log_area.appendPlainText("  Uruchamianie bota...")
         self._log_area.appendPlainText("=" * 40)
