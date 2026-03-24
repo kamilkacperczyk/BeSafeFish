@@ -9,9 +9,21 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QLineEdit, QPushButton, QFrame, QSpacerItem, QSizePolicy,
 )
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QThread
 
 from gui.db import authenticate_user, register_user, init_db
+
+
+class _ServerCheckThread(QThread):
+    """Sprawdza serwer w tle (cold start Render moze trwac do 60s)."""
+    result = Signal(bool, str)
+
+    def run(self):
+        try:
+            init_db()
+            self.result.emit(True, "")
+        except RuntimeError as e:
+            self.result.emit(False, str(e))
 
 
 class LoginScreen(QWidget):
@@ -21,9 +33,10 @@ class LoginScreen(QWidget):
 
     def __init__(self):
         super().__init__()
-        init_db()
         self._is_register_mode = False
+        self._server_ready = False
         self._setup_ui()
+        self._check_server()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -146,6 +159,40 @@ class LoginScreen(QWidget):
         self._password_input.returnPressed.connect(self._on_action)
         self._confirm_input.returnPressed.connect(self._on_action)
 
+    def _check_server(self):
+        """Sprawdza serwer w tle — nie blokuje GUI."""
+        self._action_button.setEnabled(False)
+        self._action_button.setText("Laczenie z serwerem...")
+        self._show_info("Laczenie z serwerem BeSafeFish... Moze to potrwac do minuty.")
+
+        self._server_thread = _ServerCheckThread()
+        self._server_thread.result.connect(self._on_server_check)
+        self._server_thread.start()
+
+    def _on_server_check(self, ok: bool, error: str):
+        """Callback po sprawdzeniu serwera."""
+        self._server_ready = ok
+        if ok:
+            self._action_button.setEnabled(True)
+            self._action_button.setText("Zaloguj sie")
+            self._message_label.setText("")
+        else:
+            self._show_error("Nie mozna polaczyc z serwerem. Sprawdz internet i sprobuj ponownie.")
+            self._action_button.setEnabled(True)
+            self._action_button.setText("Sprobuj ponownie")
+            self._action_button.clicked.disconnect()
+            self._action_button.clicked.connect(self._retry_server)
+
+    def _retry_server(self):
+        """Ponawia probe polaczenia z serwerem."""
+        self._action_button.clicked.disconnect()
+        self._action_button.clicked.connect(self._on_action)
+        self._check_server()
+
+    def _show_info(self, msg: str):
+        self._message_label.setStyleSheet("color: #53a8b6;")
+        self._message_label.setText(msg)
+
     def _toggle_mode(self):
         """Przelacza miedzy trybem logowania a rejestracji."""
         self._is_register_mode = not self._is_register_mode
@@ -168,6 +215,10 @@ class LoginScreen(QWidget):
 
     def _on_action(self):
         """Obsluguje klikniecie przycisku Zaloguj/Zarejestruj."""
+        if not self._server_ready:
+            self._show_error("Brak polaczenia z serwerem. Poczekaj lub sprobuj ponownie.")
+            return
+
         username = self._username_input.text().strip()
         password = self._password_input.text()
 

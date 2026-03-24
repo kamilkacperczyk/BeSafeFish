@@ -16,7 +16,7 @@ import urllib.error
 API_URL = "https://kosa-h283.onrender.com"
 
 
-def _api_request(endpoint, data=None):
+def _api_request(endpoint, data=None, timeout=60):
     """Wysyla request do API serwera BeSafeFish."""
     url = f"{API_URL}{endpoint}"
     if data is not None:
@@ -28,7 +28,7 @@ def _api_request(endpoint, data=None):
         req = urllib.request.Request(url)
 
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.URLError:
         return {"ok": False, "msg": "Brak polaczenia z serwerem. Sprawdz internet."}
@@ -37,12 +37,19 @@ def _api_request(endpoint, data=None):
 
 
 def init_db():
-    """Sprawdza czy serwer API dziala."""
-    result = _api_request("/api/health")
-    if not result.get("ok"):
-        raise RuntimeError(
-            "Nie mozna polaczyc z serwerem BeSafeFish. Sprawdz polaczenie z internetem."
-        )
+    """Sprawdza czy serwer API dziala. Retry przy cold start Render."""
+    import time
+
+    for attempt in range(3):
+        result = _api_request("/api/health", timeout=60)
+        if result.get("ok"):
+            return
+        if attempt < 2:
+            time.sleep(2)
+
+    raise RuntimeError(
+        "Nie mozna polaczyc z serwerem BeSafeFish. Sprawdz polaczenie z internetem."
+    )
 
 
 def register_user(username: str, email: str, password: str) -> tuple:
