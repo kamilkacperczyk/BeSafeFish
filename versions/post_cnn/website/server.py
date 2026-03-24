@@ -135,7 +135,8 @@ def login():
     if not username or not password:
         return jsonify({"ok": False, "msg": "Wypelnij wszystkie pola."})
 
-    ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+    xff = request.headers.get("X-Forwarded-For", "")
+    ip_address = xff.split(",")[0].strip() if xff else request.remote_addr
     user_agent = request.headers.get("User-Agent", "")
 
     try:
