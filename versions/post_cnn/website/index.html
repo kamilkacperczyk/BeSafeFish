@@ -21,6 +21,7 @@
             <li><a href="#minigames">Mini-gry</a></li>
             <li><a href="#download">Pobierz</a></li>
             <li><a href="#register">Rejestracja</a></li>
+            <li><a href="#terms">Regulamin</a></li>
         </ul>
         <a href="#register" class="nav-cta">Dołącz teraz</a>
     </div>
@@ -302,10 +303,108 @@
                         <label for="reg-confirm">Powtórz hasło</label>
                         <input type="password" id="reg-confirm" placeholder="Powtórz hasło" required>
                     </div>
+                    <div class="form-group form-group-checkbox">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="reg-terms">
+                            <span>Akceptuję <a href="#terms">regulamin serwisu</a> i politykę prywatności</span>
+                        </label>
+                    </div>
                     <div class="form-message" id="formMessage"></div>
                     <button type="submit" class="btn btn-primary btn-full">Stwórz konto</button>
-                    <p class="form-note">Rejestrując się akceptujesz regulamin serwisu.</p>
                 </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- REGULAMIN -->
+<section id="terms" class="terms">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-tag">Regulamin</span>
+            <h2>Regulamin serwisu i polityka prywatności</h2>
+            <p>Ostatnia aktualizacja: 24 marca 2026</p>
+        </div>
+        <div class="terms-content">
+            <div class="terms-block">
+                <h3>1. Postanowienia ogólne</h3>
+                <p>Serwis BeSafeFish (dalej "Serwis") umożliwia korzystanie z oprogramowania do automatycznego łowienia ryb w grze Metin2. Korzystanie z Serwisu oznacza akceptację niniejszego regulaminu.</p>
+                <p>Serwis ma charakter edukacyjny i demonstracyjny - prezentuje zastosowanie sieci neuronowych (CNN) do analizy obrazu w czasie rzeczywistym.</p>
+            </div>
+
+            <div class="terms-block">
+                <h3>2. Konto użytkownika</h3>
+                <ul>
+                    <li>Rejestracja wymaga podania nazwy użytkownika, adresu email i hasła.</li>
+                    <li>Użytkownik odpowiada za bezpieczeństwo swoich danych logowania.</li>
+                    <li>Jedno konto na osobę. Konta wielokrotne mogą zostać zablokowane.</li>
+                    <li>Administrator może dezaktywować konto naruszające regulamin.</li>
+                </ul>
+            </div>
+
+            <div class="terms-block">
+                <h3>3. Plany i subskrypcje</h3>
+                <ul>
+                    <li>Darmowy plan: 50 rund dziennie, bez opłat, bez limitu czasowego.</li>
+                    <li>Plan Premium: bez limitu rund, płatny miesięcznie.</li>
+                    <li>Po wygaśnięciu planu Premium konto automatycznie wraca do planu darmowego.</li>
+                </ul>
+            </div>
+
+            <div class="terms-block">
+                <h3>4. Charakter usługi i odpowiedzialność</h3>
+                <ul>
+                    <li>BeSafeFish to narzędzie oparte na sztucznej inteligencji - jego skuteczność zależy od wielu czynników (rozdzielczość ekranu, ustawienia gry, obciążenie systemu) i może się różnić w zależności od konfiguracji.</li>
+                    <li>Korzystanie z narzędzi automatyzujących rozgrywkę może być niezgodne z regulaminem gry. Użytkownik podejmuje tę decyzję samodzielnie i na własną odpowiedzialność.</li>
+                    <li>BeSafeFish nie ponosi odpowiedzialności za ewentualne sankcje ze strony wydawcy gry.</li>
+                </ul>
+            </div>
+
+            <div class="terms-block">
+                <h3>5. Polityka prywatności - jakie dane zbieramy</h3>
+                <p>Przetwarzamy dane osobowe zgodnie z RODO (Rozporządzenie UE 2016/679). Zbieramy:</p>
+                <ul>
+                    <li><strong>Dane konta:</strong> nazwa użytkownika, adres email, zahashowane hasło (bcrypt).</li>
+                    <li><strong>Historia logowań:</strong> adres IP, User-Agent przeglądarki/aplikacji, data i wynik próby logowania.</li>
+                    <li><strong>Dane użytkowania:</strong> liczba wykorzystanych rund dziennie.</li>
+                </ul>
+            </div>
+
+            <div class="terms-block">
+                <h3>6. Cel przetwarzania danych</h3>
+                <ul>
+                    <li><strong>Dane konta</strong> - umożliwienie logowania i korzystania z Serwisu (art. 6 ust. 1 lit. b RODO - wykonanie umowy).</li>
+                    <li><strong>Historia logowań (IP)</strong> - bezpieczeństwo systemu, wykrywanie nieautoryzowanego dostępu (art. 6 ust. 1 lit. f RODO - uzasadniony interes).</li>
+                    <li><strong>Dane użytkowania</strong> - egzekwowanie limitów planu subskrypcyjnego.</li>
+                </ul>
+            </div>
+
+            <div class="terms-block">
+                <h3>7. Przechowywanie i ochrona danych</h3>
+                <ul>
+                    <li>Hasła są hashowane algorytmem bcrypt - nigdy nie przechowujemy haseł w postaci jawnej.</li>
+                    <li>Historia logowań jest przechowywana przez maksymalnie 90 dni, po czym jest automatycznie usuwana.</li>
+                    <li>Dane przechowywane są na serwerach w Unii Europejskiej (Supabase).</li>
+                    <li>Połączenie z serwerem jest szyfrowane (HTTPS/SSL).</li>
+                </ul>
+            </div>
+
+            <div class="terms-block">
+                <h3>8. Prawa użytkownika (RODO)</h3>
+                <p>Każdy użytkownik ma prawo do:</p>
+                <ul>
+                    <li><strong>Dostępu</strong> - wglądu w swoje dane osobowe.</li>
+                    <li><strong>Sprostowania</strong> - poprawienia nieprawidłowych danych.</li>
+                    <li><strong>Usunięcia</strong> - żądania usunięcia konta i wszystkich danych ("prawo do bycia zapomnianym").</li>
+                    <li><strong>Przenoszenia</strong> - otrzymania swoich danych w formacie nadającym się do odczytu.</li>
+                    <li><strong>Sprzeciwu</strong> - wobec przetwarzania danych na podstawie uzasadnionego interesu.</li>
+                </ul>
+                <p>W celu realizacji powyższych praw skontaktuj się z administratorem serwisu.</p>
+            </div>
+
+            <div class="terms-block">
+                <h3>9. Zmiany regulaminu</h3>
+                <p>Administrator zastrzega sobie prawo do zmiany regulaminu. O istotnych zmianach użytkownicy zostaną poinformowani.</p>
             </div>
         </div>
     </div>
@@ -325,6 +424,7 @@
                 <a href="#safety">Bezpieczeństwo</a>
                 <a href="#download">Pobierz</a>
                 <a href="#register">Rejestracja</a>
+                <a href="#terms">Regulamin</a>
             </div>
         </div>
         <div class="footer-bottom">

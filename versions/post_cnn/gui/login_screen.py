@@ -7,7 +7,7 @@ Po udanym logowaniu emituje sygnal login_success(username).
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QLineEdit, QPushButton, QFrame, QSpacerItem, QSizePolicy,
+    QLineEdit, QPushButton, QFrame, QSpacerItem, QSizePolicy, QCheckBox,
 )
 from PySide6.QtCore import Signal, Qt, QThread
 
@@ -113,6 +113,13 @@ class LoginScreen(QWidget):
         self._confirm_input.setVisible(False)
         form_layout.addWidget(self._confirm_input)
 
+        # Checkbox regulaminu (widoczny tylko w trybie rejestracji)
+        form_layout.addSpacing(4)
+        self._terms_checkbox = QCheckBox("Akceptuje regulamin serwisu i polityke prywatnosci")
+        self._terms_checkbox.setObjectName("termsCheckbox")
+        self._terms_checkbox.setVisible(False)
+        form_layout.addWidget(self._terms_checkbox)
+
         # Komunikat bledu / sukcesu
         form_layout.addSpacing(4)
         self._message_label = QLabel("")
@@ -205,6 +212,7 @@ class LoginScreen(QWidget):
             self._email_input.setVisible(True)
             self._confirm_label.setVisible(True)
             self._confirm_input.setVisible(True)
+            self._terms_checkbox.setVisible(True)
         else:
             self._action_button.setText("Zaloguj sie")
             self._toggle_button.setText("Nie masz konta? Zarejestruj sie")
@@ -212,6 +220,8 @@ class LoginScreen(QWidget):
             self._email_input.setVisible(False)
             self._confirm_label.setVisible(False)
             self._confirm_input.setVisible(False)
+            self._terms_checkbox.setVisible(False)
+            self._terms_checkbox.setChecked(False)
 
     def _on_action(self):
         """Obsluguje klikniecie przycisku Zaloguj/Zarejestruj."""
@@ -234,6 +244,9 @@ class LoginScreen(QWidget):
                 return
             if password != confirm:
                 self._show_error("Hasla sie nie zgadzaja.")
+                return
+            if not self._terms_checkbox.isChecked():
+                self._show_error("Musisz zaakceptowac regulamin serwisu.")
                 return
 
             ok, msg = register_user(username, email, password)

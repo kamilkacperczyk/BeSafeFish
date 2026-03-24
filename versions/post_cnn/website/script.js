@@ -32,6 +32,7 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
     var email = document.getElementById('reg-email').value.trim();
     var password = document.getElementById('reg-password').value;
     var confirm = document.getElementById('reg-confirm').value;
+    var terms = document.getElementById('reg-terms').checked;
     var msg = document.getElementById('formMessage');
 
     msg.textContent = '';
@@ -63,6 +64,12 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
 
     if (password !== confirm) {
         msg.textContent = 'Hasła się nie zgadzają.';
+        msg.classList.add('error');
+        return;
+    }
+
+    if (!terms) {
+        msg.textContent = 'Musisz zaakceptować regulamin serwisu.';
         msg.classList.add('error');
         return;
     }
