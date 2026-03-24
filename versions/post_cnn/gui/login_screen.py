@@ -275,51 +275,44 @@ class LoginScreen(QWidget):
         # Username
         self._username_label = QLabel("Nazwa uzytkownika")
         form_layout.addWidget(self._username_label)
-
         self._username_input = QLineEdit()
         self._username_input.setPlaceholderText("Wpisz nazwe uzytkownika...")
-        self._username_input.setMinimumHeight(40)
+        self._username_input.setMinimumHeight(38)
         form_layout.addWidget(self._username_input)
 
         # Email (widoczne tylko w trybie rejestracji)
-        form_layout.addSpacing(4)
         self._email_label = QLabel("Email")
         self._email_label.setVisible(False)
         form_layout.addWidget(self._email_label)
-
         self._email_input = QLineEdit()
         self._email_input.setPlaceholderText("Wpisz adres email...")
-        self._email_input.setMinimumHeight(40)
+        self._email_input.setMinimumHeight(38)
         self._email_input.setVisible(False)
         form_layout.addWidget(self._email_input)
 
         # Password
-        form_layout.addSpacing(4)
         self._password_label = QLabel("Haslo")
         form_layout.addWidget(self._password_label)
-
         self._password_input = QLineEdit()
         self._password_input.setEchoMode(QLineEdit.Password)
         self._password_input.setPlaceholderText("Wpisz haslo (min. 8 znakow)...")
         self._password_input.setMaxLength(64)
-        self._password_input.setMinimumHeight(40)
+        self._password_input.setMinimumHeight(38)
         form_layout.addWidget(self._password_input)
 
         # Confirm Password (widoczne tylko w trybie rejestracji)
         self._confirm_label = QLabel("Powtorz haslo")
         self._confirm_label.setVisible(False)
         form_layout.addWidget(self._confirm_label)
-
         self._confirm_input = QLineEdit()
         self._confirm_input.setEchoMode(QLineEdit.Password)
         self._confirm_input.setPlaceholderText("Powtorz haslo...")
         self._confirm_input.setMaxLength(64)
-        self._confirm_input.setMinimumHeight(40)
+        self._confirm_input.setMinimumHeight(38)
         self._confirm_input.setVisible(False)
         form_layout.addWidget(self._confirm_input)
 
-        # Regulamin - przycisk + status (widoczne tylko w trybie rejestracji)
-        form_layout.addSpacing(8)
+        # Regulamin - przycisk (widoczny tylko w trybie rejestracji)
         self._terms_button = QPushButton("Przeczytaj regulamin serwisu")
         self._terms_button.setObjectName("termsButton")
         self._terms_button.setCursor(Qt.PointingHandCursor)
@@ -328,13 +321,7 @@ class LoginScreen(QWidget):
         self._terms_button.clicked.connect(self._open_terms_dialog)
         form_layout.addWidget(self._terms_button)
 
-        self._terms_status = QLabel("")
-        self._terms_status.setAlignment(Qt.AlignCenter)
-        self._terms_status.setVisible(False)
-        form_layout.addWidget(self._terms_status)
-
         # Komunikat bledu / sukcesu
-        form_layout.addSpacing(4)
         self._message_label = QLabel("")
         self._message_label.setObjectName("errorLabel")
         self._message_label.setAlignment(Qt.AlignCenter)
@@ -342,10 +329,9 @@ class LoginScreen(QWidget):
         form_layout.addWidget(self._message_label)
 
         # Przycisk akcji (Zaloguj / Zarejestruj)
-        form_layout.addSpacing(8)
         self._action_button = QPushButton("Zaloguj sie")
         self._action_button.setObjectName("loginButton")
-        self._action_button.setMinimumHeight(44)
+        self._action_button.setMinimumHeight(42)
         self._action_button.clicked.connect(self._on_action)
         form_layout.addWidget(self._action_button)
 
@@ -353,7 +339,6 @@ class LoginScreen(QWidget):
         sep = QFrame()
         sep.setObjectName("separator")
         sep.setFrameShape(QFrame.HLine)
-        form_layout.addSpacing(8)
         form_layout.addWidget(sep)
 
         # Przelacznik logowanie/rejestracja
@@ -426,10 +411,8 @@ class LoginScreen(QWidget):
             self._confirm_label.setVisible(True)
             self._confirm_input.setVisible(True)
             self._terms_button.setVisible(True)
-            self._terms_status.setVisible(True)
-            # Reset akceptacji regulaminu
             self._terms_accepted = False
-            self._update_terms_status()
+            self._update_terms_button()
         else:
             self._action_button.setText("Zaloguj sie")
             self._toggle_button.setText("Nie masz konta? Zarejestruj sie")
@@ -438,7 +421,6 @@ class LoginScreen(QWidget):
             self._confirm_label.setVisible(False)
             self._confirm_input.setVisible(False)
             self._terms_button.setVisible(False)
-            self._terms_status.setVisible(False)
             self._terms_accepted = False
 
     def _open_terms_dialog(self):
@@ -447,13 +429,11 @@ class LoginScreen(QWidget):
         dialog.exec()
         if dialog.was_accepted():
             self._terms_accepted = True
-        self._update_terms_status()
+        self._update_terms_button()
 
-    def _update_terms_status(self):
-        """Aktualizuje status akceptacji regulaminu."""
+    def _update_terms_button(self):
+        """Aktualizuje wyglad przycisku regulaminu."""
         if self._terms_accepted:
-            self._terms_status.setText("Regulamin zaakceptowany")
-            self._terms_status.setStyleSheet("color: #1b998b; font-size: 12px; font-weight: 500;")
             self._terms_button.setText("Regulamin zaakceptowany")
             self._terms_button.setStyleSheet("""
                 QPushButton {
@@ -467,8 +447,6 @@ class LoginScreen(QWidget):
                 QPushButton:hover { background-color: rgba(27, 153, 139, 0.25); }
             """)
         else:
-            self._terms_status.setText("Musisz zaakceptowac regulamin aby kontynuowac")
-            self._terms_status.setStyleSheet("color: #64748b; font-size: 11px; font-style: italic;")
             self._terms_button.setText("Przeczytaj regulamin serwisu")
             self._terms_button.setStyleSheet("")
 
