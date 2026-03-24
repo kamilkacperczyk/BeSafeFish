@@ -151,7 +151,7 @@ class Dashboard(QWidget):
         # === FOOTER ===
         footer = QHBoxLayout()
 
-        version_label = QLabel("BeSafeFish v1.0 - Kosa Post-CNN")
+        version_label = QLabel("BeSafeFish v1.1 - Kosa Post-CNN")
         version_label.setStyleSheet("color: #555; font-size: 10px;")
         footer.addWidget(version_label)
 
