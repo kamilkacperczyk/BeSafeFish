@@ -95,6 +95,7 @@ class Dashboard(QWidget):
 
         self._status_label = QLabel("\u23F8 Gotowy")
         self._status_label.setObjectName("statusLabel")
+        self._status_label.setMinimumHeight(28)
         self._status_label.setStyleSheet(
             "color: #888; background-color: #16213e; "
             "border-radius: 4px; padding: 4px 12px;"
