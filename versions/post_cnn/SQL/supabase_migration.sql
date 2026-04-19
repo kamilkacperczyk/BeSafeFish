@@ -775,4 +775,6 @@ VALUES
     ('Darmowy', 'darmowy', 'Plan darmowy z podstawowymi funkcjami', 0.00, 'monthly',
      '{"max_sessions": 1, "max_rounds_per_day": 50}'::jsonb, 0, 1),
     ('Premium', 'premium', 'Plan Premium z pelnym dostepem do bota', 29.99, 'monthly',
-     '{"max_sessions": -1, "max_rounds_per_day": -1, "priority_support": true}'::jsonb, 7, 2);
+     '{"max_sessions": -1, "max_rounds_per_day": -1, "priority_support": true}'::jsonb, 7, 2),
+    ('Bezplatny', 'discord-plan', 'Pelny dostep za darmo - przyznawany recznie po kontakcie na Discord', 0.00, 'monthly',
+     '{"max_sessions": -1, "max_rounds_per_day": -1, "priority_support": true}'::jsonb, 0, 3);
