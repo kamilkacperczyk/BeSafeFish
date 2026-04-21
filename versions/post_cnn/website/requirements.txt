@@ -2,5 +2,5 @@
 # Oddzielne od glownego requirements.txt projektu
 flask==3.1.3
 psycopg2-binary==2.9.10
-python-dotenv==1.1.0
+python-dotenv==1.2.2
 gunicorn==23.0.0
