@@ -39,6 +39,7 @@ id_rsa*
 /test_kolory/
 *.png
 !versions/post_cnn/website/img/*.png
+!versions/post_cnn/gui/assets/*.png
 *.log
 *.tmp
 
