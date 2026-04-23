@@ -46,10 +46,10 @@ Plik `.gitignore` chroni przed przypadkowym dodaniem:
 - `id_rsa*` - klucze SSH
 - `.vscode/settings.json` - lokalne ustawienia edytora
 
-### 5. Copilot Agent
+### 5. Copilot Agent / Claude Agent
 
 Plik `.github/copilot-instructions.md` ogranicza GitHub Copilot Agent:
-- Operuje WYLACZNIE w obrebie workspace Kosa
+- Operuje WYLACZNIE w obrebie workspace BeSafeFish
 - NIGDY nie czyta plikow poza projektem (klucze SSH, tokeny, .env systemowe)
 - NIGDY nie wyswietla zmiennych srodowiskowych z sekretami
 - Przed kazdym commitem audytuje pliki pod katem wrazliwych danych
