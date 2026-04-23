@@ -1,4 +1,4 @@
-# BeSafeFish (Kosa)
+# BeSafeFish
 
 Asystent computer vision automatyzujacy czynnosci w grze - aplikacja desktopowa + rejestracja przez strone WWW + baza w chmurze (PySide6, Flask API, PostgreSQL, ONNX).
 
