@@ -38,7 +38,7 @@ id_rsa*
 /diagnostyka_live/
 /test_kolory/
 *.png
-!versions/post_cnn/website/img/*.png
+!app/website/img/*.png
 *.log
 *.tmp
 

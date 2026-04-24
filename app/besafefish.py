@@ -13,10 +13,28 @@ Wymagania:
 import sys
 import os
 
-# Dodaj katalog post_cnn do PYTHONPATH (zeby importy src.* i gui.* dzialaly)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-if BASE_DIR not in sys.path:
-    sys.path.insert(0, BASE_DIR)
+# Dodaj app/ (dla importow gui.*) oraz katalog biezacego wariantu bota
+# (dla importow src.* i cnn.*) do PYTHONPATH.
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(APP_DIR)
+
+# Aktualnie jedyny wariant bota uzywany przez GUI to tryb1_rybka_klik/post_cnn.
+# W przyszlosci GUI bedzie wybieralo wariant dynamicznie (Etap 2 refaktoru bota).
+BOT_VARIANT_DIR = os.path.join(
+    REPO_ROOT, "versions", "tryb1_rybka_klik", "post_cnn"
+)
+
+for path in (APP_DIR, BOT_VARIANT_DIR):
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+# Pod PyInstallerem sciezka bazowa to sys._MEIPASS — tam leza spakowane zasoby
+# (cnn\\models\\*.onnx itd.). Dodajemy go tez, zeby importy 'cnn.*' dzialaly
+# rowniez w zbudowanym .exe (gdzie BOT_VARIANT_DIR nie istnieje).
+if getattr(sys, "frozen", False):
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass and meipass not in sys.path:
+        sys.path.insert(0, meipass)
 
 import ctypes
 from PySide6.QtWidgets import QApplication

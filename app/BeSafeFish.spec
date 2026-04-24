@@ -3,17 +3,24 @@
 # Buduje folder z programem, potem pakowany do .zip
 # Uzytkownik rozpakowuje zip, uruchamia BeSafeFish.exe jako Admin
 #
-# Build: pyinstaller BeSafeFish.spec
+# Build (z rootu repo): pyinstaller app/BeSafeFish.spec
 # Output: dist/BeSafeFish/BeSafeFish.exe
+#
+# Uwaga: sciezki w datas/pathex sa **wzgledem katalogu z ktorego odpalasz**
+# pyinstallera (zwykle root repo), NIE wzgledem pliku .spec.
 
 a = Analysis(
-    ['besafefish.py'],
-    pathex=['.'],
+    ['app\\besafefish.py'],
+    pathex=[
+        'app',
+        'versions\\tryb1_rybka_klik\\post_cnn',
+    ],
     binaries=[],
     datas=[
-        ('gui\\fish.ico', 'gui'),
-        ('cnn\\models\\fish_patch_cnn.onnx', 'cnn\\models'),
-        ('cnn\\models\\fish_patch_cnn.onnx.data', 'cnn\\models'),
+        ('app\\gui\\fish.ico', 'gui'),
+        ('app\\gui\\assets', 'gui\\assets'),
+        ('versions\\tryb1_rybka_klik\\post_cnn\\cnn\\models\\fish_patch_cnn.onnx', 'cnn\\models'),
+        ('versions\\tryb1_rybka_klik\\post_cnn\\cnn\\models\\fish_patch_cnn.onnx.data', 'cnn\\models'),
     ],
     hiddenimports=[
         'PySide6.QtSvg',
@@ -43,7 +50,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['gui\\fish.ico'],
+    icon=['app\\gui\\fish.ico'],
     uac_admin=True,
 )
 

@@ -2,7 +2,7 @@
 Backend strony BeSafeFish - rejestracja uzytkownikow przez WEB.
 
 Wersja przystosowana do deployu na Render.com (lub inny hosting PaaS).
-- Nie importuje gui.db ani innych modulow z post_cnn — jest samodzielny
+- Nie importuje gui.db ani innych modulow aplikacji desktop — jest samodzielny
 - Laczy sie z baza bezposrednio przez psycopg2 + DATABASE_URL_ADMIN
 - Connection pool (ThreadedConnectionPool) — reuzywanie polaczen
 - Na Render zmienne srodowiskowe ustawiane w Dashboard (Environment)
