@@ -43,13 +43,13 @@ id_rsa*
 *.tmp
 
 # === CNN TRENING (duze pliki, dane lokalne) ===
-versions/post_cnn/cnn/data/
-versions/post_cnn/cnn/cache/
-versions/post_cnn/cnn/patches/
+versions/tryb1_rybka_klik/post_cnn/cnn/data/
+versions/tryb1_rybka_klik/post_cnn/cnn/cache/
+versions/tryb1_rybka_klik/post_cnn/cnn/patches/
 *.pth
 *.csv
-!versions/post_cnn/cnn/models/*.onnx
-!versions/post_cnn/cnn/models/*.onnx.data
+!versions/tryb1_rybka_klik/post_cnn/cnn/models/*.onnx
+!versions/tryb1_rybka_klik/post_cnn/cnn/models/*.onnx.data
 
 # === DANE TYMCZASOWE / DIAGNOSTYKA ===
 /rybki_do_oceny/

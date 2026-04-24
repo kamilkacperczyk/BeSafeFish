@@ -18,7 +18,7 @@ from pathlib import Path
 
 # ---- Konfiguracja zrodel danych ----
 
-# Sciezki wzgledem roota projektu (C:\...\Kosa)
+# Sciezki wzgledem roota repo (BeSafeFish)
 # (log_csv, frames_dir, frame_name_digits) — digits: ile cyfr w nazwie
 DATA_SOURCES = [
     {
