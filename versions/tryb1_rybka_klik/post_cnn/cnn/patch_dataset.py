@@ -12,10 +12,10 @@ Dane zrodlowe:
   rybki_do_oceny/raw/           — klatki 279x247
   rybki_do_oceny/marked/        — klatki z zaznaczeniami (backup)
 
-Wynik:
-  versions/post_cnn/cnn/patches/fish/       — patche z rybka (pozytywne)
-  versions/post_cnn/cnn/patches/not_fish/   — patche bez rybki (negatywne)
-  versions/post_cnn/cnn/patches/labels.json — etykiety + status weryfikacji
+Wynik (wzgledem roota repo):
+  versions/tryb1_rybka_klik/post_cnn/cnn/patches/fish/       — patche z rybka (pozytywne)
+  versions/tryb1_rybka_klik/post_cnn/cnn/patches/not_fish/   — patche bez rybki (negatywne)
+  versions/tryb1_rybka_klik/post_cnn/cnn/patches/labels.json — etykiety + status weryfikacji
 """
 
 import json

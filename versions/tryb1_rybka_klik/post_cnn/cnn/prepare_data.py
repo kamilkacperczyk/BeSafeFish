@@ -203,8 +203,8 @@ def prepare_data(
     generuje etykiety JSONL.
     """
     if project_root is None:
-        # Auto-detect: versions/post_cnn/cnn/ → 3 levels up
-        project_root = Path(__file__).resolve().parent.parent.parent.parent
+        # Auto-detect root repo: versions/tryb1_rybka_klik/post_cnn/cnn/<plik> -> 5 levels up
+        project_root = Path(__file__).resolve().parents[4]
 
     project_root = Path(project_root)
 
