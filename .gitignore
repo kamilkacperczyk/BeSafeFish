@@ -39,6 +39,7 @@ id_rsa*
 /test_kolory/
 *.png
 !app/website/img/*.png
+!app/gui/assets/*.png
 *.log
 *.tmp
 
