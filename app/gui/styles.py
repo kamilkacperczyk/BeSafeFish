@@ -59,6 +59,10 @@ QPushButton#startButton:hover {
 QPushButton#startButton:pressed {
     background-color: #148f77;
 }
+QPushButton#startButton:disabled {
+    background-color: #2a5a54;
+    color: #7a9a95;
+}
 
 /* Przycisk STOP */
 QPushButton#stopButton {

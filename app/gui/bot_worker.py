@@ -19,11 +19,20 @@ class BotWorker(QThread):
     status_changed = Signal(str)    # "running" / "stopped" / "error"
     finished_signal = Signal()      # bot zakonczyl prace
 
-    def __init__(self, debug: bool = False, use_cnn: bool = True, user_id: int = None):
+    def __init__(
+        self,
+        debug: bool = False,
+        use_cnn: bool = True,
+        user_id: int = None,
+        enabled_modes: list | None = None,
+    ):
         super().__init__()
         self._debug = debug
         self._use_cnn = use_cnn
         self._user_id = user_id
+        # Lista aktywnych trybow, np. ['fish_click', 'bubble_space'].
+        # Etap 1: logujemy i walidujemy; realna obsluga > 1 trybu w Etapie 2.
+        self._enabled_modes = list(enabled_modes) if enabled_modes else ["fish_click"]
         self._bot = None
 
     def _is_admin(self) -> bool:
@@ -36,17 +45,30 @@ class BotWorker(QThread):
     def run(self):
         """Uruchamia bota w watku (nie wywoluj bezposrednio — uzyj .start())."""
         try:
-            # Sprawdz uprawnienia admina
+            # Sprawdz uprawnienia admina (finally ponizej wyemituje 'stopped' + finished).
             if not self._is_admin():
                 self.log_message.emit("[BLAD] Bot wymaga uprawnien Administratora!")
                 self.log_message.emit("[INFO] Uruchom BeSafeFish jako Administrator.")
                 self.log_message.emit("[INFO] PPM na skrot → 'Uruchom jako administrator'")
                 self.status_changed.emit("error")
-                self.finished_signal.emit()
                 return
 
             self.status_changed.emit("running")
             self.log_message.emit("[BOT] Inicjalizacja...")
+            self.log_message.emit(
+                f"[BOT] Aktywne tryby: {', '.join(self._enabled_modes) or '(brak)'}"
+            )
+
+            # Etap 1: tryb 'bubble_space' nie jest jeszcze zaimplementowany.
+            # (finally ponizej wyemituje status 'stopped' + finished_signal.)
+            if "bubble_space" in self._enabled_modes:
+                self.log_message.emit(
+                    "[INFO] Tryb 'Mini-gra spacja' bedzie dostepny w kolejnej wersji."
+                )
+                self.log_message.emit(
+                    "[INFO] Wybierz 'Mini-gra łowienie ryb' zeby uruchomic bota."
+                )
+                return
 
             # Import bota tutaj — nie blokuje startu GUI
             from src.bot import KosaBot

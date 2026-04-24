@@ -2,24 +2,36 @@
 Dashboard BeSafeFish — panel sterowania botem.
 
 Funkcje:
+    - Wybor trybow minigry (checkboxy) — START pojawia sie po zaznaczeniu chociaz jednego
     - Start/Stop bota jednym przyciskiem
     - Log na zywo (sygnaly z BotWorker)
     - Status: Gotowy / Dziala / Blad
     - Statystyki: liczba rund
-    - Opcja: PatchCNN on/off
+    - Opcja: PatchCNN on/off (tylko gdy Tryb 1 aktywny)
     - Zakladka Subskrypcja: aktualny plan, porownanie, historia platnosci
 """
+
+import os
+import sys
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QPlainTextEdit, QFrame, QSpacerItem, QSizePolicy,
     QCheckBox, QTabWidget,
 )
-from PySide6.QtCore import Signal, Qt, Slot
-from PySide6.QtGui import QTextCursor
+from PySide6.QtCore import Signal, Qt, Slot, QSettings
+from PySide6.QtGui import QTextCursor, QPixmap
 
 from gui.bot_worker import BotWorker
 from gui.subscription_tab import SubscriptionTab
+
+
+def _asset_path(filename: str) -> str:
+    """Sciezka do pliku w gui/assets/ dzialajaca i w dev, i w PyInstaller bundle."""
+    if getattr(sys, "frozen", False):
+        base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+        return os.path.join(base, "gui", "assets", filename)
+    return os.path.join(os.path.dirname(__file__), "assets", filename)
 
 
 class Dashboard(QWidget):
@@ -35,7 +47,10 @@ class Dashboard(QWidget):
         self._worker = None
         self._is_running = False
         self._round_count = 0
+        self._settings = QSettings("BeSafeFish", "Desktop")
         self._setup_ui()
+        self._load_mode_prefs()
+        self._refresh_mode_dependent_ui()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -129,12 +144,62 @@ class Dashboard(QWidget):
 
         layout.addLayout(btn_row)
 
+        # === WYBOR TRYBOW ===
+        modes_title = QLabel("Tryby minigry:")
+        modes_title.setStyleSheet("color: #53a8b6; font-size: 12px; font-weight: bold;")
+        layout.addWidget(modes_title)
+
+        modes_row = QHBoxLayout()
+        modes_row.setSpacing(16)
+        modes_row.setAlignment(Qt.AlignLeft)
+
+        # Checkboxy wygladaja normalnie, ale logika zapewnia wzajemne
+        # wykluczanie — klik na jeden odznacza drugi (patrz _on_*_toggled).
+
+        # Tryb 1: Mini-gra lowienie ryb (rybka - klik)
+        self._mode_fish_checkbox = QCheckBox(
+            "Mini-gra łowienie ryb (rybka - klik)"
+        )
+        self._mode_fish_thumb = QLabel()
+        self._mode_fish_thumb.setPixmap(QPixmap(_asset_path("mode_fish_click.png")))
+        self._mode_fish_thumb.setFixedSize(96, 72)
+        mode1_col = QVBoxLayout()
+        mode1_col.setSpacing(4)
+        mode1_col.addWidget(self._mode_fish_thumb, alignment=Qt.AlignCenter)
+        mode1_col.addWidget(self._mode_fish_checkbox, alignment=Qt.AlignCenter)
+        modes_row.addLayout(mode1_col)
+
+        # Tryb 2: Mini-gra spacja (dymek z cyfra - spacja)
+        self._mode_bubble_checkbox = QCheckBox(
+            "Mini-gra spacja (dymek z cyfrą - spacja)"
+        )
+        self._mode_bubble_thumb = QLabel()
+        self._mode_bubble_thumb.setPixmap(QPixmap(_asset_path("mode_bubble_space.png")))
+        self._mode_bubble_thumb.setFixedSize(96, 72)
+        mode2_col = QVBoxLayout()
+        mode2_col.setSpacing(4)
+        mode2_col.addWidget(self._mode_bubble_thumb, alignment=Qt.AlignCenter)
+        mode2_col.addWidget(self._mode_bubble_checkbox, alignment=Qt.AlignCenter)
+        modes_row.addLayout(mode2_col)
+
+        modes_row.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        layout.addLayout(modes_row)
+
+        # Klik na checkbox -> wzajemne wykluczanie + odswiez UI.
+        self._mode_fish_checkbox.toggled.connect(self._on_fish_toggled)
+        self._mode_bubble_checkbox.toggled.connect(self._on_bubble_toggled)
+
         # === OPCJE ===
         opts_row = QHBoxLayout()
-        opts_row.setAlignment(Qt.AlignCenter)
+        opts_row.setAlignment(Qt.AlignLeft)
 
         self._cnn_checkbox = QCheckBox("Uzyj PatchCNN (weryfikacja rybki)")
         self._cnn_checkbox.setChecked(True)
+        self._cnn_checkbox.setToolTip(
+            "Dziala tylko dla trybu 'Mini-gra łowienie ryb (rybka - klik)'.\n"
+            "Weryfikuje czy wykryty obiekt to faktycznie rybka."
+        )
         opts_row.addWidget(self._cnn_checkbox)
 
         layout.addLayout(opts_row)
@@ -181,10 +246,17 @@ class Dashboard(QWidget):
         self._log_area.appendPlainText("  Uruchamianie bota...")
         self._log_area.appendPlainText("=" * 40)
 
+        mode = self._selected_mode()
+        if mode is None:
+            # Nie powinno sie zdarzyc (START jest niewidoczny bez wyboru), ale dla pewnosci.
+            return
+        self._save_mode_prefs()
+
         self._worker = BotWorker(
             debug=False,
             use_cnn=self._cnn_checkbox.isChecked(),
             user_id=self._user_id,
+            enabled_modes=[mode],
         )
         self._worker.log_message.connect(self._on_log)
         self._worker.status_changed.connect(self._on_status)
@@ -194,7 +266,7 @@ class Dashboard(QWidget):
         self._is_running = True
         self._start_btn.setVisible(False)
         self._stop_btn.setVisible(True)
-        self._cnn_checkbox.setEnabled(False)
+        self._set_mode_controls_enabled(False)
 
     def _on_stop(self):
         """Zatrzymuje bota."""
@@ -271,9 +343,89 @@ class Dashboard(QWidget):
         self._is_running = False
         self._start_btn.setVisible(True)
         self._stop_btn.setVisible(False)
-        self._cnn_checkbox.setEnabled(True)
+        self._set_mode_controls_enabled(True)
+        self._refresh_mode_dependent_ui()
         self._worker = None
         self._log_area.appendPlainText("[GUI] Bot zatrzymany.")
+
+    # ------------------------------------------------------------------
+    # TRYBY MINIGRY
+    # ------------------------------------------------------------------
+
+    def _selected_mode(self) -> str | None:
+        """Zwraca klucz wybranego trybu (np. 'fish_click') albo None."""
+        if self._mode_fish_checkbox.isChecked():
+            return "fish_click"
+        if self._mode_bubble_checkbox.isChecked():
+            return "bubble_space"
+        return None
+
+    def _on_fish_toggled(self, checked: bool):
+        """Klik na Tryb 1 — jesli zaznaczony, odznacz Tryb 2 (wzajemne wykluczanie)."""
+        if checked and self._mode_bubble_checkbox.isChecked():
+            self._mode_bubble_checkbox.blockSignals(True)
+            self._mode_bubble_checkbox.setChecked(False)
+            self._mode_bubble_checkbox.blockSignals(False)
+        self._save_mode_prefs()
+        self._refresh_mode_dependent_ui()
+
+    def _on_bubble_toggled(self, checked: bool):
+        """Klik na Tryb 2 — odznacz Tryb 1 oraz PatchCNN (tryb 2 ich nie uzywa)."""
+        if checked:
+            if self._mode_fish_checkbox.isChecked():
+                self._mode_fish_checkbox.blockSignals(True)
+                self._mode_fish_checkbox.setChecked(False)
+                self._mode_fish_checkbox.blockSignals(False)
+            # PatchCNN dotyczy tylko Trybu 1 — automatycznie odznaczamy.
+            if self._cnn_checkbox.isChecked():
+                self._cnn_checkbox.setChecked(False)
+        self._save_mode_prefs()
+        self._refresh_mode_dependent_ui()
+
+    def _refresh_mode_dependent_ui(self):
+        """Aktywuj/dezaktywuj START i PatchCNN zaleznie od wyboru trybu."""
+        if self._is_running:
+            # Podczas dzialania bota kontrolki sa zablokowane przez
+            # _set_mode_controls_enabled(False) — tutaj nic nie ruszamy.
+            return
+
+        mode = self._selected_mode()
+        self._start_btn.setEnabled(mode is not None)
+
+        # PatchCNN ma sens tylko gdy wybrany jest tryb rybki.
+        self._cnn_checkbox.setEnabled(mode == "fish_click")
+
+    def _set_mode_controls_enabled(self, enabled: bool):
+        """Wlacza/wylacza wszystkie kontrolki konfiguracji (podczas pracy bota)."""
+        self._mode_fish_checkbox.setEnabled(enabled)
+        self._mode_bubble_checkbox.setEnabled(enabled)
+        # PatchCNN tylko gdy enabled i gdy wybrany tryb rybki.
+        self._cnn_checkbox.setEnabled(enabled and self._selected_mode() == "fish_click")
+
+    def _load_mode_prefs(self):
+        """Wczytuje ostatni wybor trybu z QSettings.
+
+        Domyslnie: Tryb 1 (fish_click) zaznaczony, PatchCNN on.
+        Jesli zapisana wartosc to pusty string — zostaje nic zaznaczonego.
+        """
+        mode = self._settings.value("modes/selected", "fish_click", type=str)
+        cnn = self._settings.value("options/use_cnn", True, type=bool)
+        # Ustawiamy bez odpalania sygnalow, zeby nie zapisac od razu tego samego.
+        self._mode_fish_checkbox.blockSignals(True)
+        self._mode_bubble_checkbox.blockSignals(True)
+        if mode == "fish_click":
+            self._mode_fish_checkbox.setChecked(True)
+        elif mode == "bubble_space":
+            self._mode_bubble_checkbox.setChecked(True)
+        # inaczej: oba odznaczone
+        self._cnn_checkbox.setChecked(cnn)
+        self._mode_fish_checkbox.blockSignals(False)
+        self._mode_bubble_checkbox.blockSignals(False)
+
+    def _save_mode_prefs(self):
+        """Zapisuje aktualny wybor trybu + PatchCNN do QSettings."""
+        self._settings.setValue("modes/selected", self._selected_mode() or "")
+        self._settings.setValue("options/use_cnn", self._cnn_checkbox.isChecked())
 
     # ------------------------------------------------------------------
     # CLEANUP
