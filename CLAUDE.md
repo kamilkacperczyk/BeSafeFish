@@ -11,6 +11,7 @@ Przed wprowadzaniem zmian przeczytaj odpowiedni plik:
 | `app/docs/zasady-sql.md` | Konwencje nazewnictwa, checklist zmian w bazie, zapytania diagnostyczne | ...zmieniasz kolumne/tabele/funkcje/enum w SQL |
 | `app/docs/regulamin-i-rodo.md` | Regulamin, RODO, checkbox akceptacji, retencja danych | ...dodajesz rejestracje, zbierasz dane osobowe, IP |
 | `app/docs/historia-wersji.md` | Ewolucja bota (pre_cnn → post_cnn), co zmienilo sie i dlaczego | ...chcesz zrozumiec rozniace miedzy wariantami bota |
+| `app/docs/architektura-i-lekcje.md` | Lekcje z refaktorow (modularnosc, Strategy pattern, hardcoded paths) | ...projektujesz nowa funkcjonalnosc, decydujesz o strukturze |
 | `versions/tryb1_rybka_klik/README.md` | Opis trybu rybka-klik i jego wariantow | ...pracujesz nad trybem 1 (lowienie rybki) |
 | `versions/tryb1_rybka_klik/post_cnn/README.md` | Szczegoly wariantu post_cnn (pipeline detekcji, PatchCNN) | ...modyfikujesz kod bota z CNN |
 | `versions/tryb1_rybka_klik/post_cnn/cnn/ARCHITEKTURA_CNN.md` | Model PatchCNN, trening, inference, ONNX | ...pracujesz nad CNN/modelem |
