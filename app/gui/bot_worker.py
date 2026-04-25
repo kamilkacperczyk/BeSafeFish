@@ -73,7 +73,12 @@ class BotWorker(QThread):
             # Import bota tutaj — nie blokuje startu GUI
             from src.bot import KosaBot
 
+            # Wybierz tryb - GUI przekazuje liste enabled_modes, my bierzemy
+            # pierwszy. Po Etapie 2 dispatcher trybow zyje w KosaBot.
+            mode = self._enabled_modes[0] if self._enabled_modes else "fish_click"
+
             self._bot = KosaBot(
+                mode=mode,
                 debug=False,           # GUI mode — bez cv2.imshow
                 use_cnn=self._use_cnn,
                 log_callback=self._on_log,
